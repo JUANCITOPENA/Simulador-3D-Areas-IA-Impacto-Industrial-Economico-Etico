@@ -1,0 +1,2332 @@
+html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulador 3D de IA | Tema 5: Áreas Principales & Tema 6: Impacto y Aplicaciones</title>
+  
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- FontAwesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-main: #f8fafc;
+      --card-bg: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --primary: #2563eb;
+      --primary-light: #eff6ff;
+      --accent: #0284c7;
+      --success: #16a34a;
+      --warning: #d97706;
+      --danger: #dc2626;
+      --border-color: #e2e8f0;
+      --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06);
+      --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.08);
+    }
+
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+    }
+
+    .app-header {
+      background: #ffffff;
+      border-bottom: 2px solid var(--border-color);
+      box-shadow: var(--shadow-sm);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    .sidebar-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 14px;
+      box-shadow: var(--shadow-sm);
+      height: calc(100vh - 95px);
+      display: flex;
+      flex-direction: column;
+      position: sticky;
+      top: 80px;
+    }
+
+    .concept-list {
+      overflow-y: auto;
+      scrollbar-width: thin;
+      scrollbar-color: #cbd5e1 #f8fafc;
+    }
+
+    .concept-item {
+      cursor: pointer;
+      border-radius: 10px;
+      transition: all 0.2s ease;
+      border: 1px solid transparent;
+      padding: 9px 11px;
+      margin-bottom: 4px;
+    }
+
+    .concept-item:hover {
+      background-color: #f1f5f9;
+      transform: translateX(2px);
+    }
+
+    .concept-item.active {
+      background-color: var(--primary-light);
+      border-color: #93c5fd;
+      color: var(--primary);
+      font-weight: 600;
+    }
+
+    /* Visor 3D */
+    .viewport-container {
+      position: relative;
+      background: radial-gradient(circle at center, #ffffff 0%, #e2e8f0 100%);
+      border-radius: 16px;
+      border: 2px solid var(--border-color);
+      box-shadow: var(--shadow-md);
+      overflow: hidden;
+      height: 455px;
+    }
+
+    #threejs-canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .canvas-hud-overlay {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      right: 14px;
+      pointer-events: none;
+      z-index: 10;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .canvas-hud-badge {
+      background: rgba(255, 255, 255, 0.94);
+      backdrop-filter: blur(8px);
+      border: 1px solid #cbd5e1;
+      padding: 7px 15px;
+      border-radius: 30px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-main);
+      box-shadow: var(--shadow-sm);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .canvas-step-pill {
+      background: rgba(37, 99, 235, 0.95);
+      color: #ffffff;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .canvas-controls-overlay {
+      position: absolute;
+      bottom: 14px;
+      right: 14px;
+      z-index: 10;
+    }
+
+    .info-card {
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 14px;
+      box-shadow: var(--shadow-sm);
+      padding: 18px;
+      transition: all 0.3s ease;
+    }
+
+    .info-card.speaking-highlight {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
+      background-color: #f8fbff;
+    }
+
+    .math-formula-box {
+      font-family: 'JetBrains Mono', monospace;
+      background-color: #f1f5f9;
+      border-left: 4px solid var(--primary);
+      padding: 11px 14px;
+      border-radius: 6px;
+      color: #0f172a;
+      font-size: 0.88rem;
+      font-weight: 600;
+      transition: all 0.3s ease;
+    }
+
+    .math-formula-box.speaking-highlight {
+      background-color: #dbeafe;
+      border-left-color: #1d4ed8;
+      transform: scale(1.01);
+    }
+
+    .result-box {
+      background-color: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      border-left: 4px solid var(--success);
+      border-radius: 8px;
+      padding: 10px 14px;
+    }
+
+    .sound-waves {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      height: 20px;
+    }
+    .sound-bar {
+      width: 4px;
+      background-color: var(--primary);
+      border-radius: 2px;
+      animation: sound-bounce 0.6s infinite alternate ease-in-out;
+    }
+    .sound-bar:nth-child(1) { height: 8px; animation-delay: 0.1s; }
+    .sound-bar:nth-child(2) { height: 18px; animation-delay: 0.25s; }
+    .sound-bar:nth-child(3) { height: 12px; animation-delay: 0.15s; }
+    .sound-bar:nth-child(4) { height: 16px; animation-delay: 0.35s; }
+
+    @keyframes sound-bounce {
+      0% { transform: scaleY(0.35); }
+      100% { transform: scaleY(1.25); }
+    }
+
+    .voice-captions {
+      min-height: 64px;
+      background: linear-gradient(90deg, #eff6ff 0%, #f8fafc 100%);
+      border: 2px solid #93c5fd;
+      border-radius: 12px;
+      padding: 12px 18px;
+      font-size: 0.95rem;
+      color: #1e3a8a;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .btn-speak-mini {
+      padding: 2px 8px;
+      font-size: 0.75rem;
+      border-radius: 6px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Barra Superior -->
+  <header class="app-header py-2 px-4">
+    <div class="container-fluid d-flex flex-wrap justify-content-between align-items-center gap-2">
+      <div class="d-flex align-items-center gap-3">
+        <span class="badge bg-primary p-2 fs-5 rounded-3"><i class="fa-solid fa-microchip"></i></span>
+        <div>
+          <h1 class="fs-5 fw-bold mb-0 text-dark">Simulador 3D de IA: Áreas Principales e Impacto Global</h1>
+          <p class="text-muted small mb-0">Tema 5: Áreas de la IA 🚀🧠 &bull; Tema 6: Aplicaciones, Industria, Economía y Ética 🌍⚖️</p>
+        </div>
+      </div>
+
+      <div class="d-flex align-items-center gap-2">
+        <div class="sound-waves d-none me-2" id="voiceIndicator">
+          <span class="sound-bar"></span>
+          <span class="sound-bar"></span>
+          <span class="sound-bar"></span>
+          <span class="sound-bar"></span>
+        </div>
+        <span class="badge bg-light text-dark border px-3 py-2" id="lblAudioStatus">
+          <i class="fa-solid fa-microphone-lines text-primary me-1"></i> Narrador IA Activo
+        </span>
+        <button class="btn btn-outline-secondary btn-sm" id="btnMuteToggle" title="Activar/Silenciar Voz">
+          <i class="fa-solid fa-volume-high" id="iconMute"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Cuerpo Principal -->
+  <div class="container-fluid py-3 px-4">
+    <div class="row g-3">
+      
+      <!-- Menú Izquierdo: Los 20 Conceptos -->
+      <div class="col-lg-3 col-md-4">
+        <div class="sidebar-card p-3">
+          <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+            <span class="fw-bold text-uppercase small text-muted"><i class="fa-solid fa-layer-group me-1"></i> 20 Simuladores 3D</span>
+            <span class="badge bg-primary rounded-pill" id="conceptCounter">1 / 20</span>
+          </div>
+
+          <div class="concept-list flex-grow-1 pe-1" id="conceptListContainer"></div>
+
+          <div class="pt-2 border-top mt-2 d-flex gap-2">
+            <button class="btn btn-outline-secondary btn-sm w-50 fw-semibold" id="btnPrevConcept"><i class="fa-solid fa-arrow-left me-1"></i> Anterior</button>
+            <button class="btn btn-primary btn-sm w-50 fw-semibold" id="btnNextConcept">Siguiente <i class="fa-solid fa-arrow-right ms-1"></i></button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel Derecho: Escenario 3D, Narrador y Controles -->
+      <div class="col-lg-9 col-md-8">
+        
+        <!-- Lienzo 3D -->
+        <div class="viewport-container mb-3">
+          <div class="canvas-hud-overlay">
+            <span class="canvas-hud-badge" id="hudTopicCategory">
+              <i class="fa-solid fa-cube text-primary"></i> <span id="hudConceptTitle">Cargando...</span>
+            </span>
+            <span class="canvas-step-pill" id="hudStepBadge">Fase: Escenario Inicial</span>
+          </div>
+
+          <div class="canvas-controls-overlay d-flex gap-2">
+            <button class="btn btn-light btn-sm shadow-sm border fw-semibold" id="btnResetCamera">
+              <i class="fa-solid fa-crosshairs text-primary me-1"></i> Centrar 3D
+            </button>
+            <button class="btn btn-light btn-sm shadow-sm border fw-semibold" id="btnToggleRotate">
+              <i class="fa-solid fa-rotate text-secondary me-1"></i> Orbitar
+            </button>
+          </div>
+
+          <canvas id="threejs-canvas"></canvas>
+        </div>
+
+        <!-- Barra de Controles Maestros -->
+        <div class="info-card p-3 mb-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+          <div class="d-flex flex-wrap align-items-center gap-2">
+            <button class="btn btn-success px-3 fw-bold shadow-sm" id="btnPlaySim">
+              <i class="fa-solid fa-play me-1"></i> Explicar Todo y Simular 3D
+            </button>
+            <button class="btn btn-primary px-3 fw-semibold shadow-sm" id="btnNextStepManual">
+              <i class="fa-solid fa-forward-step me-1"></i> Paso a Paso Narrado
+            </button>
+            <button class="btn btn-warning px-3 fw-semibold text-dark" id="btnPauseSim">
+              <i class="fa-solid fa-pause me-1"></i> Pausar
+            </button>
+            <button class="btn btn-outline-danger" id="btnResetSim">
+              <i class="fa-solid fa-rotate-left me-1"></i> Reiniciar
+            </button>
+          </div>
+
+          <div class="d-flex align-items-center gap-2">
+            <label for="simSpeed" class="small fw-bold text-muted mb-0">Velocidad Voz/3D:</label>
+            <select id="simSpeed" class="form-select form-select-sm fw-semibold" style="width: 115px;">
+              <option value="0.85">0.85x (Pausado)</option>
+              <option value="1" selected>1.0x (Normal)</option>
+              <option value="1.25">1.25x (Ágil)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Caja de Subtítulos en Tiempo Real -->
+        <div class="voice-captions mb-3 d-flex align-items-center justify-content-between">
+          <div class="d-flex align-items-center">
+            <i class="fa-solid fa-comment-dots text-primary me-3 fs-4"></i>
+            <div>
+              <div class="text-uppercase fw-bold" style="font-size: 0.7rem; letter-spacing: 0.05em; color: #2563eb;">
+                Transcripción Sincronizada del Narrador IA
+              </div>
+              <div id="txtSubtitles" class="fw-medium">
+                Pulsa <strong>"Explicar Todo y Simular 3D"</strong> o interactúa con los botones de abajo para escuchar la explicación en vivo.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tarjetas de Teoría, Fórmula Explicada y Laboratorio Interactivo -->
+        <div class="row g-3">
+          <!-- Columna Izquierda: Definición, Fórmula y Estado -->
+          <div class="col-md-7">
+            <div class="info-card h-100" id="cardTheory">
+              
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <h6 class="fw-bold text-primary text-uppercase mb-0">
+                  <i class="fa-solid fa-book-open me-1"></i> 1. Definición Formal
+                </h6>
+                <button class="btn btn-outline-primary btn-speak-mini" onclick="narrarApartado('definicion')">
+                  <i class="fa-solid fa-volume-high me-1"></i> Escuchar Definición
+                </button>
+              </div>
+              <p class="text-dark small mb-3" id="detDescription"></p>
+              
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <h6 class="fw-bold text-muted text-uppercase small mb-0">
+                  <i class="fa-solid fa-square-root-variable text-primary me-1"></i> 2. Modelo Matemático / Algorítmico
+                </h6>
+                <button class="btn btn-outline-primary btn-speak-mini" onclick="narrarApartado('formula')">
+                  <i class="fa-solid fa-volume-high me-1"></i> Explicar Fórmula
+                </button>
+              </div>
+              <div class="math-formula-box mb-2" id="detFormula"></div>
+              <p class="text-muted small mb-3 fst-italic" id="detFormulaExplain"></p>
+
+              <div class="result-box">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                  <span class="badge bg-success"><i class="fa-solid fa-check-circle me-1"></i> Estado y Resultado en Tiempo Real</span>
+                  <span class="small fw-bold text-success" id="simMetricBadge">Listo</span>
+                </div>
+                <p class="small text-dark fw-semibold mb-0" id="simStepLog">Esperando inicio de simulación...</p>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Columna Derecha: Ejemplo y Laboratorio Interactivo Narrado -->
+          <div class="col-md-5">
+            <div class="info-card h-100 border-start border-4 border-primary" id="cardInteractive">
+              
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <h6 class="fw-bold text-success text-uppercase mb-0">
+                  <i class="fa-solid fa-lightbulb me-1"></i> 3. Caso Práctico y Aplicación
+                </h6>
+                <button class="btn btn-outline-success btn-speak-mini" onclick="narrarApartado('ejemplo')">
+                  <i class="fa-solid fa-volume-high me-1"></i> Escuchar Ejemplo
+                </button>
+              </div>
+              <p class="text-dark small mb-3" id="detExample"></p>
+              
+              <div class="p-3 bg-light rounded-3 border">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                  <h6 class="fw-bold small mb-0 text-dark">
+                    <i class="fa-solid fa-hand-pointer text-primary me-1"></i> Simulador Interactivo (Narrado)
+                  </h6>
+                  <span class="badge bg-primary" style="font-size: 0.65rem;">Voz + 3D</span>
+                </div>
+                <p class="text-muted" style="font-size: 0.78rem; margin-bottom: 10px;">
+                  Pulsa cualquier acción para ejecutarla en el modelo 3D y escuchar qué ocurre y cuál es el resultado:
+                </p>
+                <div id="dynamicCustomControls" class="d-flex flex-column gap-2"></div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Three.js y OrbitControls -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <!-- Bootstrap 5 JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+  <script>
+    /* =========================================================================
+       MOTOR GRÁFICO 3D Y GENERADORES DE ETIQUETAS FLOTANTES
+       ========================================================================= */
+    let scene, camera, renderer, controls;
+    let dynamicMeshes = [];
+    let activeAnimations = [];
+
+    function register3D(obj) {
+      scene.add(obj);
+      dynamicMeshes.push(obj);
+      return obj;
+    }
+
+    function createLabel3D(text, x, y, z, bgColor = "#1e293b", textColor = "#ffffff", scaleWidth = 3.3) {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = 512;
+      canvas.height = 128;
+
+      ctx.fillStyle = bgColor;
+      ctx.beginPath();
+      ctx.roundRect(10, 14, 492, 100, 24);
+      ctx.fill();
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = "#ffffff";
+      ctx.stroke();
+
+      ctx.fillStyle = textColor;
+      ctx.font = "bold 32px Inter, Arial, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(text, 256, 64);
+
+      const texture = new THREE.CanvasTexture(canvas);
+      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, depthTest: false }));
+      sprite.position.set(x, y, z);
+      sprite.scale.set(scaleWidth, scaleWidth * 0.25, 1);
+      sprite.renderOrder = 999;
+      return register3D(sprite);
+    }
+
+    function updateLabel3D(sprite, newText, bgColor = "#2563eb", textColor = "#ffffff") {
+      if (!sprite || !sprite.material || !sprite.material.map) return;
+      const canvas = sprite.material.map.image;
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = bgColor;
+      ctx.beginPath();
+      ctx.roundRect(10, 14, 492, 100, 24);
+      ctx.fill();
+      ctx.lineWidth = 6;
+      ctx.strokeStyle = "#ffffff";
+      ctx.stroke();
+
+      ctx.fillStyle = textColor;
+      ctx.font = "bold 32px Inter, Arial, sans-serif";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(newText, 256, 64);
+      sprite.material.map.needsUpdate = true;
+    }
+
+    function createCylinderEdge(p1, p2, radius = 0.07, colorHex = 0x94a3b8) {
+      const dir = new THREE.Vector3().subVectors(p2, p1);
+      const len = dir.length();
+      const mesh = new THREE.Mesh(
+        new THREE.CylinderGeometry(radius, radius, len, 12),
+        new THREE.MeshStandardMaterial({ color: colorHex, roughness: 0.3 })
+      );
+      mesh.position.copy(p1).add(dir.multiplyScalar(0.5));
+      mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir.clone().normalize());
+      return register3D(mesh);
+    }
+
+    /* =========================================================================
+       BASE DE DATOS DE LOS 20 CONCEPTOS (TEMA 5 Y TEMA 6)
+       ========================================================================= */
+    const CONCEPTO_DATA = [
+      // ==================== TEMA 5: ÁREAS PRINCIPALES DE LA IA ====================
+      {
+        id: 0,
+        tema: "Tema 5: Áreas IA",
+        icono: "fa-robot",
+        titulo: "Robótica y Automatización Avanzada 🚀",
+        definicion: "Integra mecánica articulada, sensores propioceptivos y algoritmos de control inteligente (cinemática inversa y planificación de movimiento) para manipular objetos físicos con precisión submilimétrica de forma autónoma.",
+        formula: "θ = J⁻¹(θ) · Δx   |   τ = M(q)q̈ + C(q, q̇) + G(q)",
+        explicacionFormula: "En la ecuación de cinemática inversa, los ángulos de los motores theta se calculan multiplicando la matriz Jacobiana inversa J a la menos uno por el desplazamiento deseado delta x. La segunda fórmula calcula el torque dinámico considerando masa, fuerza centrífuga y gravedad.",
+        ejemplo: "Brazo robótico industrial de 3 grados de libertad ensamblando microcomponentes en una línea automotriz sin intervención humana.",
+        setup3D: setupT5_1,
+        secuencia: [
+          {
+            fase: "1. Cinemática Robótica",
+            card: "cardTheory",
+            log: "Brazo articulado en posición home: Base θ₁=0°, Hombro θ₂=15°, Pinza abierta.",
+            voz: "Concepto 1: Robótica y automatización avanzada. En el escenario 3D observas un brazo robótico industrial articulado frente a una pieza de ensamblaje."
+          },
+          {
+            fase: "2. Cinemática Inversa y Ensamblaje",
+            card: "cardInteractive",
+            log: "Calculando J⁻¹(θ) ➔ Articulación desciende, sujeta pieza y ensambla con error < 0.02mm.",
+            voz: "Al aplicar la matriz Jacobiana inversa, el controlador calcula los ángulos exactos de cada motor, inclina el brazo hacia la pieza, la sujeta y completa la automatización con precisión milimétrica.",
+            accion: () => actionT5_1('ensamblar')
+          }
+        ],
+        controles: [
+          {
+            label: "🦾 Calcular Cinemática Inversa y Sujetar Pieza",
+            accion: () => {
+              actionT5_1('ensamblar');
+              narrarAccion("Ejecutando cinemática inversa mediante la matriz Jacobiana: los servomotores ajustan sus ángulos theta, el efector final desciende sobre el bloque y lo posiciona con éxito.", "Cinemática Inversa: θ₁=25°, θ₂=-40° ➔ Pieza Ensamblada");
+            }
+          },
+          {
+            label: "🔄 Retornar Brazo a Posición de Reposo (Home)",
+            accion: () => {
+              actionT5_1('home');
+              narrarAccion("Retornando articulaciones a configuración cero: los pares de torsión compensan la gravedad y el brazo vuelve a su estado de espera seguro.", "Estado Home: θ₁=0°, θ₂=0° | Torque estabilizado");
+            }
+          }
+        ]
+      },
+
+      {
+        id: 1,
+        tema: "Tema 5: Áreas IA",
+        icono: "fa-eye",
+        titulo: "Visión Artificial y Procesamiento de Imágenes 👁️",
+        definicion: "Área que permite a las máquinas extraer información semántica a partir de imágenes o nubes de puntos mediante Redes Convolucionales (CNN) y Vision Transformers, realizando segmentación y detección de objetos en tiempo real.",
+        formula: "(I ∗ K)(i, j) = ∑∑ I(i-m, j-n) · K(m, n)   |   IoU = Área(Bₚ ∩ Bᵣ) / Área(Bₚ ∪ Bᵣ)",
+        explicacionFormula: "La primera expresión es la operación de convolución entre la matriz de imagen I y el filtro o kernel K para detectar bordes y formas. La segunda es la Intersección sobre Unión IoU, que mide la exactitud de la caja delimitadora predicha.",
+        ejemplo: "Cámara de inspección industrial escaneando un objeto 3D, proyectando una caja delimitadora (Bounding Box) y clasificándolo con 99.4% de confianza.",
+        setup3D: setupT5_2,
+        secuencia: [
+          {
+            fase: "1. Captura y Convolución",
+            card: "cardTheory",
+            log: "Sensor óptico capturando matriz de píxeles y aplicando filtros K(m,n).",
+            voz: "Concepto 2: Visión artificial. A la izquierda observas el sensor óptico proyectando su campo visual sobre un objeto tridimensional situado en la plataforma."
+          },
+          {
+            fase: "2. Detección Bounding Box e IoU",
+            card: "cardInteractive",
+            log: "Objeto detectado: Bounding Box verde activa | IoU = 0.94 | Clase: Componente A (99.4%).",
+            voz: "Tras aplicar las capas convolucionales, el modelo encierra el objeto en una caja delimitadora verde brillante y lo clasifica con un noventa y nueve punto cuatro por ciento de certeza.",
+            accion: () => actionT5_2('detectar')
+          }
+        ],
+        controles: [
+          {
+            label: "👁️ Ejecutar Convolución y Detección YOLO (Bounding Box)",
+            accion: () => {
+              actionT5_2('detectar');
+              narrarAccion("Aplicando filtros convolucionales y detección en una sola pasada: se genera la caja delimitadora 3D alrededor de la pieza con un índice de intersección sobre unión de 0.94. Clasificación exitosa.", "Detección YOLO: Clase='Pieza Óptima' | Confianza = 99.4%");
+            }
+          },
+          {
+            label: "⚠️ Simular Pieza Defectuosa en Línea Visual",
+            accion: () => {
+              actionT5_2('defecto');
+              narrarAccion("El mapa de características ha detectado una anomalía estructural en la superficie de la pieza. La caja delimitadora cambia a rojo marcando rechazo de calidad.", "Alerta de Visión: Anomalía superficial detectada (Rechazado)");
+            }
+          }
+        ]
+      },
+
+      {
+        id: 2,
+        tema: "Tema 5: Áreas IA",
+        icono: "fa-dna",
+        titulo: "Algoritmos Genéticos y Optimización Evolutiva 🧬",
+        definicion: "Técnica inspirada en la evolución biológica de Darwin que codifica soluciones potenciales como cromosomas y aplica operadores de Selección por Aptitud (Fitness), Cruce (Crossover) y Mutación aleatoria para hallar diseños óptimos.",
+        formula: "P(Selecciónᵢ) = f(xᵢ) / ∑ f(xₖ)   |   Hijo = α·Padre₁ + (1-α)·Padre₂ + Mutación(ε)",
+        explicacionFormula: "La probabilidad de que un individuo deje descendencia es proporcional a su aptitud f de x sub i respecto al total de la población. El nuevo individuo combina los genes de ambos padres más una pequeña perturbación aleatoria épsilon de mutación.",
+        ejemplo: "Optimización evolutiva de una estructura aeroespacial: los nodos de la hélice genética mutan y se recombinan hasta maximizar su resistencia aerodinámica.",
+        setup3D: setupT5_3,
+        secuencia: [
+          {
+            fase: "1. Codificación Genética",
+            card: "cardTheory",
+            log: "Hélice cromosómica con 10 genes estructurales en Generación 1.",
+            voz: "Concepto 3: Algoritmos genéticos y optimización evolutiva. En el visor 3D observas una estructura helicoidal donde cada par de esferas representa un gen de diseño."
+          },
+          {
+            fase: "2. Cruce, Mutación y Fitness Máximo",
+            card: "cardInteractive",
+            log: "Generación 50: Genes óptimos seleccionados en verde esmeralda | Fitness = 99.1%.",
+            voz: "A través de sucesivas generaciones de cruce y mutación, los genes débiles desaparecen y la estructura se ilumina en verde esmeralda alcanzando una aptitud del noventa y nueve punto uno por ciento.",
+            accion: () => actionT5_3('evolucionar')
+          }
+        ],
+        controles: [
+          {
+            label: "🧬 Aplicar Cruce Genético (Crossover) y Selección",
+            accion: () => {
+              actionT5_3('evolucionar');
+              narrarAccion("Ejecutando selección por ruleta y cruce multipunto: los mejores genes dominan la hélice tridimensional elevando la eficiencia estructural al 99.1 por ciento.", "Resultado Evolutivo: Generación 50 | Fitness = 99.1%");
+            }
+          },
+          {
+            label: "⚡ Introducir Mutación Aleatoria (Explorar Nuevos Genes)",
+            accion: () => {
+              actionT5_3('mutar');
+              narrarAccion("Introduciendo tasa de mutación épsilon del 5 por ciento: varios nodos cambian a color ámbar alterando su geometría para escapar de óptimos locales.", "Operador Mutación: Variabilidad genética incrementada");
+            }
+          }
+        ]
+      },
+
+      {
+        id: 3,
+        tema: "Tema 5: Áreas IA",
+        icono: "fa-comments",
+        titulo: "Procesamiento del Lenguaje Natural (PLN) y Habla 🗣️",
+        definicion: "Rama de la IA que dota a los sistemas de la capacidad de comprender, traducir y generar lenguaje humano hablado y escrito mediante tokenización, incrustaciones vectoriales (Embeddings) y arquitecturas Transformer con mecanismos de Atención.",
+        formula: "Attention(Q, K, V) = softmax( (Q · Kᵀ) / √dₖ ) · V",
+        explicacionFormula: "La ecuación de Auto-Atención de los modelos Transformer multiplica las matrices de Consulta Q y Clave K transpuesta, las divide por la raíz de la dimensión d sub k para estabilizar gradientes, aplica softmax para obtener pesos de relevancia y multiplica por los Valores V.",
+        ejemplo: "Una onda de voz humana se transforma en 4 tokens vectoriales en 3D, conectándose con haces brillantes de atención entre las palabras 'Banco' y 'Dinero' para desambiguar su significado.",
+        setup3D: setupT5_4,
+        secuencia: [
+          {
+            fase: "1. Tokenización y Embeddings",
+            card: "cardTheory",
+            log: "Oración dividida en 4 vectores Embedding en el espacio semántico 3D.",
+            voz: "Concepto 4: Procesamiento del Lenguaje Natural y comprensión del habla. Las esferas representan palabras convertidas en vectores numéricos o embeddings dentro del espacio 3D."
+          },
+          {
+            fase: "2. Mecanismo Self-Attention",
+            card: "cardInteractive",
+            log: "Atención Q·Kᵀ máxima (0.92) entre 'Banco' y 'Finanzas' ➔ Significado desambiguado.",
+            voz: "Al aplicar la fórmula de Atención, se proyectan conexiones doradas intensas entre el token Banco y el token Finanzas, permitiendo al modelo comprender que hablamos de una entidad bancaria y no de un asiento.",
+            accion: () => actionT5_4('atencion')
+          }
+        ],
+        controles: [
+          {
+            label: "🔗 Calcular Matriz de Auto-Atención (Self-Attention)",
+            accion: () => {
+              actionT5_4('atencion');
+              narrarAccion("Calculando producto punto entre Consultas Q y Claves K: el peso softmax vincula fuertemente los tokens semánticamente relacionados con un puntaje de atención de 0.92, resolviendo toda ambigüedad del lenguaje.", "Transformer Attention: Contexto semántico resuelto (Score=0.92)");
+            }
+          }
+        ]
+      },
+
+      {
+        id: 4,
+        tema: "Tema 5: Áreas IA",
+        icono: "fa-brain",
+        titulo: "Redes Neuronales Artificiales y Aprendizaje Profundo 🧠",
+        definicion: "Modelos computacionales formados por múltiples capas de neuronas artificiales interconectadas (Deep Learning) que aprenden representaciones jerárquicas de los datos ajustando sus pesos sinápticos mediante descenso del gradiente y retropropagación.",
+        formula: "a⁽ˡ⁾ = σ( W⁽ˡ⁾ · a⁽ˡ⁻¹⁾ + b⁽ˡ⁾ )   |   wᵢⱼ ← wᵢⱼ - η · (∂L / ∂wᵢⱼ)",
+        explicacionFormula: "En la propagación hacia adelante, la activación a de la capa l es la función no lineal sigma aplicada a la matriz de pesos W por la capa anterior más el sesgo b. En el entrenamiento, cada peso w se actualiza restando la tasa de aprendizaje eta por la derivada parcial del error L.",
+        ejemplo: "Red neuronal profunda de 3 capas en 3D iluminándose de izquierda a derecha al clasificar un dato (Forward) y de derecha a izquierda al corregir errores (Backpropagation).",
+        setup3D: setupT5_5,
+        secuencia: [
+          {
+            fase: "1. Propagación Hacia Adelante (Forward)",
+            card: "cardTheory",
+            log: "Señal fluyendo de Capa Entrada ➔ Capa Oculta ➔ Salida Softmax.",
+            voz: "Concepto 5: Redes Neuronales y Aprendizaje Profundo. Observa la red tridimensional de tres capas: entrada a la izquierda, capa oculta al centro y neuronas de salida a la derecha."
+          },
+          {
+            fase: "2. Retropropagación del Error (Backprop)",
+            card: "cardInteractive",
+            log: "Ajustando pesos W con ∂L/∂w ➔ Pérdida (Loss) cae de 0.85 a 0.03 (Precisión 98.5%).",
+            voz: "Mediante el algoritmo de retropropagación del error, los gradientes viajan hacia atrás ajustando el grosor y color de las sinapsis hasta reducir el error a cero punto cero tres.",
+            accion: () => actionT5_5('backprop')
+          }
+        ],
+        controles: [
+          {
+            label: "➡️ Ejecutar Forward Pass (Inferencia Neuronal)",
+            accion: () => {
+              actionT5_5('forward');
+              narrarAccion("Propagación hacia adelante activada: las entradas se multiplican por las matrices de pesos W y atraviesan la función de activación ReLU hasta encender la neurona ganadora en la capa de salida.", "Forward Pass: Predicción emitida en capa de salida");
+            }
+          },
+          {
+            label: "⬅️ Ejecutar Backpropagation (Entrenar Pesos W)",
+            accion: () => {
+              actionT5_5('backprop');
+              narrarAccion("Ejecutando descenso del gradiente y retropropagación: la derivada de la función de pérdida ajusta todos los pesos sinápticos en verde. La precisión del modelo sube al 98.5 por ciento.", "Backpropagation completado: Loss = 0.03 | Precisión = 98.5%");
+            }
+          }
+        ]
+      },
+
+      {
+        id: 5,
+        tema: "Tema 5: Áreas IA",
+        icono: "fa-microchip",
+        titulo: "Agentes Inteligentes y Sistemas Autónomos 🤖",
+        definicion: "Entidad física o de software que percibe su entorno mediante sensores, mantiene un estado interno del mundo y ejecuta acciones mediante actuadores para maximizar racionalmente su utilidad esperada sin supervisión humana.",
+        formula: "Agente: Percepción* → Acción   |   a* = argmax_a ∑ P(s' | s, a) · U(s')",
+        explicacionFormula: "Un agente racional mapea toda la secuencia histórica de percepciones hacia la acción óptima a estrella que maximiza la sumatoria de la probabilidad de llegar al estado s prima multiplicada por la utilidad U de dicho estado.",
+        ejemplo: "Agente autónomo 3D operando en bucle continuo: escanea los objetivos del entorno con su sensor, evalúa qué recurso aporta mayor utilidad y se desplaza a recolectarlo.",
+        setup3D: setupT5_6,
+        secuencia: [
+          {
+            fase: "1. Ciclo Percepción-Razonamiento-Acción",
+            card: "cardTheory",
+            log: "Agente evaluando 2 metas en el entorno: Meta A (Utilidad +10) vs Meta B (+95).",
+            voz: "Concepto 6: Agentes inteligentes y sistemas autónomos. El robot central percibe dos recursos en el mapa: uno de baja utilidad a la izquierda y otro dorado de máxima utilidad a la derecha."
+          },
+          {
+            fase: "2. Decisión Racional Autónoma",
+            card: "cardInteractive",
+            log: "Agente selecciona argmax U(s') ➔ Se desplaza al objetivo dorado (+95 puntos).",
+            voz: "Aplicando la ecuación de máxima utilidad esperada, el agente descarta la opción menor y navega autónomamente hacia la esfera dorada, maximizando su desempeño.",
+            accion: () => actionT5_6('actuar')
+          }
+        ],
+        controles: [
+          {
+            label: "🤖 Ejecutar Ciclo Percepción ➔ Decisión Racional ➔ Acción",
+            accion: () => {
+              actionT5_6('actuar');
+              narrarAccion("El agente lee sus sensores, calcula la utilidad esperada de cada destino y acciona sus motores hacia el nodo derecho de utilidad +95. Objetivo completado con éxito.", "Agente Racional: Meta Óptima Alcanzada (Utilidad = +95)");
+            }
+          }
+        ]
+      },
+
+      {
+        id: 6,
+        tema: "Tema 5: Áreas IA",
+        icono: "fa-landmark",
+        titulo: "Sistemas Expertos y su Evolución en la Era de la IA 🏛️",
+        definicion: "Recorre la evolución histórica desde los primeros sistemas basados en reglas manuales de los años 70 (como MYCIN en medicina y DENDRAL en química) hasta su transformación actual en motores híbridos acoplados a Grandes Modelos de Lenguaje (LLMs).",
+        formula: "Evolución: Reglas_Aisladas (1975) ➔ Redes_Bayesianas (1990) ➔ LLM + RAG + Reglas (Hoy)",
+        explicacionFormula: "La línea evolutiva muestra cómo pasamos de reglas simbólicas rígidas escritas a mano, hacia modelos probabilísticos, culminando hoy en sistemas expertos modernos que combinan generación neuronal con verificación simbólica estricta.",
+        ejemplo: "Línea del tiempo 3D interactiva con 3 monolitos tecnológicos: MYCIN (1976), Sistemas Basados en Conocimiento Web (2005) y Agentes Expertos Neuro-Simbólicos con RAG (Actualidad).",
+        setup3D: setupT5_7,
+        secuencia: [
+          {
+            fase: "1. De MYCIN a la IA Moderna",
+            card: "cardTheory",
+            log: "3 Etapas históricas: 1. MYCIN (Reglas) ➔ 2. Ontologías ➔ 3. IA Híbrida Moderna.",
+            voz: "Concepto 7: Evolución de los sistemas expertos. En escena vemos los tres grandes hitos históricos: los sistemas clásicos como MYCIN a la izquierda, los motores ontológicos al centro y la IA híbrida actual a la derecha."
+          },
+          {
+            fase: "2. Sinergia con Modelos Modernos",
+            card: "cardInteractive",
+            log: "Conectando motor de reglas clásico con LLM moderno ➔ Cero alucinaciones.",
+            voz: "Al conectar la precisión lógica de los sistemas expertos clásicos con la capacidad de lenguaje de los modelos actuales, eliminamos las alucinaciones y logramos sistemas confiables.",
+            accion: () => actionT5_7('evolucion')
+          }
+        ],
+        controles: [
+          {
+            label: "🏛️ Iluminar Evolución Histórica Completa (1970 ➔ Hoy)",
+            accion: () => {
+              actionT5_7('evolucion');
+              narrarAccion("Recorriendo la evolución histórica: MYCIN introdujo factores de certeza en 600 reglas médicas; hoy, esa arquitectura formal actúa como guardarraíl lógico verificando las respuestas de modelos profundos.", "Evolución completada: Sistema Experto Híbrido de Nueva Generación");
+            }
+          }
+        ]
+      },
+
+      {
+        id: 7,
+        tema: "Tema 5: Áreas IA",
+        icono: "fa-scroll",
+        titulo: "Principios de los Sistemas Expertos e Integración Moderna 📜",
+        definicion: "Se fundamentan en la separación estricta entre el Conocimiento declarativo (Base de Conocimiento) y el mecanismo de razonamiento (Motor de Inferencia), incorporando un Subsistema de Explicación capaz de justificar el 'Cómo' y el 'Porqué' de cada conclusión.",
+        formula: "Respuesta_Verificada = Motor_Inferencia( Base_Conocimiento, Hechos_LLM ) + Trazabilidad_XAI",
+        explicacionFormula: "La arquitectura integra los hechos extraídos por modelos modernos dentro de la memoria de trabajo, aplica el motor de inferencia sobre la base de reglas verificadas y adjunta un árbol de trazabilidad explicable XAI.",
+        ejemplo: "Arquitectura modular 3D donde los 4 bloques fundamentales (Base de Conocimiento, Memoria de Trabajo, Motor de Inferencia y Módulo de Explicación) cooperan con un modelo neuronal.",
+        setup3D: setupT5_8,
+        secuencia: [
+          {
+            fase: "1. Los 4 Pilares del Sistema Experto",
+            card: "cardTheory",
+            log: "Módulos: 1. Base Conocimiento, 2. Memoria Trabajo, 3. Motor Inferencia, 4. Explicación.",
+            voz: "Concepto 8: Principios de los sistemas expertos. El modelo 3D muestra el principio arquitectónico clave: la Base de Conocimiento está separada del Motor de Inferencia central y cuenta con un módulo de explicación."
+          },
+          {
+            fase: "2. Inferencia y Explicación XAI",
+            card: "cardInteractive",
+            log: "Encadenamiento hacia adelante y atrás ejecutado ➔ Explicación generada para el usuario.",
+            voz: "Cuando el motor procesa los hechos, no solo emite un dictamen, sino que activa el módulo superior de explicación para mostrarle al usuario humano qué reglas exactas respaldan la decisión.",
+            accion: () => actionT5_8('integrar')
+          }
+        ],
+        controles: [
+          {
+            label: "📜 Ejecutar Inferencia + Módulo de Explicación (¿Por qué?)",
+            accion: () => {
+              actionT5_8('integrar');
+              narrarAccion("Activando flujo completo: la Memoria de Trabajo cruza los hechos con la Base de Conocimiento en el Motor de Inferencia, y el módulo XAI genera la traza explicativa completa libre de caja negra.", "Trazabilidad XAI: Conclusión justificada paso a paso");
+            }
+          }
+        ]
+      },
+
+      {
+        id: 8,
+        tema: "Tema 5: Áreas IA",
+        icono: "fa-screwdriver-wrench",
+        titulo: "Desarrollo de Sistemas Expertos en CLIPS y Plataformas Actuales 🛠️",
+        definicion: "CLIPS (C Language Integrated Production System), creado por la NASA, implementa el algoritmo de red Rete para evaluar miles de reglas en paralelo mediante plantillas (`deftemplate`), hechos iniciales (`deffacts`), reglas (`defrule`) y comandos de ejecución (`(run)`).",
+        formula: "(defrule R1 (sensor (temp ?t&:(> ?t 90))) => (assert (alerta (nivel critico))))",
+        explicacionFormula: "En sintaxis oficial de CLIPS, defrule define una regla cuyo lado izquierdo busca en la memoria un hecho de plantilla sensor con temperatura mayor a noventa grados. La flecha implica que, al cumplirse, se inserta con assert un nuevo hecho de alerta crítica en la Agenda.",
+        ejemplo: "Grafo de Red Rete 3D en vivo: los hechos `(deffacts)` descienden por los nodos filtro Alfa y Beta hasta encender la Agenda de activación y disparar `(assert)`.",
+        setup3D: setupT5_9,
+        secuencia: [
+          {
+            fase: "1. Algoritmo de Red Rete en CLIPS",
+            card: "cardTheory",
+            log: "Nivel Superior: Nodos Alfa (deftemplate) ➔ Medio: Nodos Beta ➔ Base: Agenda CLIPS.",
+            voz: "Concepto 9: Desarrollo en CLIPS. En pantalla observas la estructura tridimensional de una Red Rete utilizada por CLIPS para emparejar hechos con reglas a máxima velocidad."
+          },
+          {
+            fase: "2. Ejecución de (reset), (assert) y (run)",
+            card: "cardInteractive",
+            log: "CLIPS> (run) ➔ Regla activada en Agenda ➔ Nuevo hecho (alerta critica) insertado.",
+            voz: "Al ejecutar el comando run en CLIPS, el hecho de temperatura mayor a noventa supera los filtros alfa y beta, activa la regla en la agenda inferior y dispara el comando assert.",
+            accion: () => actionT5_9('run_clips')
+          }
+        ],
+        controles: [
+          {
+            label: "🛠️ Ejecutar Comandos CLIPS: (reset) ➔ (assert) ➔ (run)",
+            accion: () => {
+              actionT5_9('run_clips');
+              narrarAccion("Ejecutando entorno CLIPS: el comando reset carga los deffacts iniciales; el nodo alfa filtra temperatura igual a 95 grados, el nodo beta une las condiciones y la Agenda dispara defrule insertando la alerta crítica.", "CLIPS> (run) ➔ 1 regla disparada | Fact-2 (alerta critica) activo");
+            }
+          }
+        ]
+      },
+
+      {
+        id: 9,
+        tema: "Tema 5: Áreas IA",
+        icono: "fa-palette",
+        titulo: "IA en la Creatividad: Generación de Arte, Música y Contenido 🎨🎶",
+        definicion: "Emplea modelos generativos profundos (Modelos de Difusión Latente, GANs y Transformers multimodales) que aprenden la distribución estadística de obras artísticas y musicales para sintetizar creaciones originales a partir de ruido o descripciones textuales (Prompts).",
+        formula: "p_θ(x_{t-1} | x_t) = N( x_{t-1}; μ_θ(x_t, t), Σ_θ(x_t, t) )   [Denoising Diffusion]",
+        explicacionFormula: "En los modelos de difusión inversa, el sistema parte de ruido gaussiano puro x sub T y aplica iterativamente una red neuronal parametrizada por theta que resta el ruido paso a paso desde t hasta llegar a la imagen o pieza musical limpia x sub cero.",
+        ejemplo: "Simulación 3D de Difusión Generativa: 20 esferas de ruido caótico dispersas en el espacio se organizan armónicamente hasta formar un anillo escultórico y musical perfecto.",
+        setup3D: setupT5_10,
+        secuencia: [
+          {
+            fase: "1. Espacio Latente y Ruido Inicial (x_T)",
+            card: "cardTheory",
+            log: "Estado t = 50: Nube de partículas en ruido gaussiano aleatorio.",
+            voz: "Concepto 10: IA en la creatividad. Al inicio del proceso generativo por difusión, observas veinte esferas dispersas caóticamente que representan ruido aleatorio puro."
+          },
+          {
+            fase: "2. Denoising: Síntesis de Arte y Música (x_0)",
+            card: "cardInteractive",
+            log: "Estado t = 0: Ruido eliminado guiado por Prompt ➔ Obra geométrica y armónica creada.",
+            voz: "A medida que la red neuronal elimina el ruido guiada por el prompt del usuario, las partículas convergen en una corona simétrica multicolor, sintetizando arte y armonía musical.",
+            accion: () => actionT5_10('generar')
+          }
+        ],
+        controles: [
+          {
+            label: "🎲 Reiniciar a Ruido Gaussiano Puro (Paso t = T)",
+            accion: () => {
+              actionT5_10('ruido');
+              narrarAccion("Has devuelto el espacio latente a su estado de entropía máxima t igual a T: las partículas se dispersan aleatoriamente esperando un nuevo prompt creativo.", "Espacio Latente: Ruido Gaussiano N(0, I) activo");
+            }
+          },
+          {
+            label: "🎨 Ejecutar Difusión Inversa (Denoising ➔ Crear Obra)",
+            accion: () => {
+              actionT5_10('generar');
+              narrarAccion("Ejecutando proceso de Denoising guiado por texto: el modelo resta el ruido paso a paso hasta cristalizar las partículas en una estructura artística y musical coherente.", "Obra Generada (t=0): Fidelidad estética y armónica = 98.9%");
+            }
+          }
+        ]
+      },
+
+      // ==================== TEMA 6: IMPACTO Y APLICACIONES DE LA IA ====================
+      {
+        id: 10,
+        tema: "Tema 6: Impacto y Apps",
+        icono: "fa-chart-line",
+        titulo: "Servicios de Datos y Análisis Predictivo 📊",
+        definicion: "Transforma grandes volúmenes de datos históricos (Big Data) en proyecciones futuras accionables mediante modelos autorregresivos, Gradient Boosting (XGBoost) y redes recurrentes/Transformers para anticipar demanda, riesgos y tendencias.",
+        formula: "ŷ_{t+h} = f_θ( y_t, y_{t-1}, ..., X_{exógenas} ) ± z_{α/2} · σ_h",
+        explicacionFormula: "El valor futuro predicho y sombrero en el horizonte t más h se calcula aplicando el modelo entrenado f sub theta sobre el historial pasado y las variables externas X, añadiendo una banda de confianza estadística más/menos z por la desviación estándar.",
+        ejemplo: "Gráfico 3D de barras empresariales: 4 columnas azules muestran datos históricos reales y 3 columnas verdes proyectan el crecimiento futuro predicho por la IA.",
+        setup3D: setupT6_1,
+        secuencia: [
+          {
+            fase: "1. Ingesta de Serie Histórica",
+            card: "cardTheory",
+            log: "Datos históricos Q1-Q4 cargados en azul | Analizando estacionalidad y tendencia.",
+            voz: "Concepto 11, primero del Tema 6: Servicios de datos y análisis predictivo. Las cuatro columnas azules de la izquierda representan los datos históricos registrados por la organización."
+          },
+          {
+            fase: "2. Proyección Predictiva Futura",
+            card: "cardInteractive",
+            log: "Proyección Q5-Q7 activada en verde: Crecimiento previsto +34% (Confianza 95%).",
+            voz: "Al ejecutar el modelo predictivo, emergen a la derecha tres columnas verdes que anticipan la demanda futura con un crecimiento del treinta y cuatro por ciento y noventa y cinco por ciento de confianza.",
+            accion: () => actionT6_1('predecir')
+          }
+        ],
+        controles: [
+          {
+            label: "📈 Ejecutar Modelo Predictivo de Demanda (Horizonte +3 Trimestres)",
+            accion: () => {
+              actionT6_1('predecir');
+              narrarAccion("Ejecutando regresión predictiva sobre la serie temporal: las tres barras futuras se elevan en color verde mostrando la tendencia proyectada y permitiendo anticipar compras de inventario.", "Predicción Activa: +34% Demanda estimada | MAPE = 2.1%");
+            }
+          }
+        ]
+      },
+
+      {
+        id: 11,
+        tema: "Tema 6: Impacto y Apps",
+        icono: "fa-building",
+        titulo: "AI & Machine Learning en Empresas y Automatización 🏢",
+        definicion: "Integra modelos de Machine Learning con Automatización Robótica de Procesos (RPA Inteligente / Hiperautomatización) para clasificar facturas, gestionar cadenas de suministro, optimizar recursos ERP y eliminar cuellos de botella operativos.",
+        formula: "ROI_IA = ( Ahorro_Tiempo · Costo_Hora - Costo_Operativo_IA ) / Inversión_IA",
+        explicacionFormula: "El retorno de inversión de la automatización empresarial mide el ahorro neto generado al reducir horas de procesamiento manual y errores operativos, dividido entre el costo de despliegue del sistema inteligente.",
+        ejemplo: "Planta de procesos corporativos 3D: los paquetes de tareas pasan por el nodo central de Machine Learning que los clasifica y enruta automáticamente a alta velocidad.",
+        setup3D: setupT6_2,
+        secuencia: [
+          {
+            fase: "1. Flujo Corporativo con Cuello de Botella",
+            card: "cardTheory",
+            log: "Procesamiento manual lento: Tareas acumuladas antes del nodo central.",
+            voz: "Concepto 12: Machine Learning en empresas y automatización de procesos. En el escenario vemos tres módulos departamentales unidos por un flujo de documentos."
+          },
+          {
+            fase: "2. Hiperautomatización RPA + ML",
+            card: "cardInteractive",
+            log: "Motor ML + RPA activado: Clasificación instantánea | Tiempo reducido en -78%.",
+            voz: "Al activar el motor de Machine Learning empresarial, el nodo central se ilumina en verde clasificando y despachando todos los procesos automáticamente, reduciendo los tiempos operativos un setenta y ocho por ciento.",
+            accion: () => actionT6_2('automatizar')
+          }
+        ],
+        controles: [
+          {
+            label: "🏢 Activar Hiperautomatización Empresarial (RPA + ML)",
+            accion: () => {
+              actionT6_2('automatizar');
+              narrarAccion("Activando pipeline de hiperautomatización: los documentos entrantes son leídos por OCR inteligente, clasificados por Machine Learning y asentados en el ERP sin errores humanos.", "Hiperautomatización: Eficiencia +320% | Tiempo -78%");
+            }
+          }
+        ]
+      },
+
+      {
+        id: 12,
+        tema: "Tema 6: Impacto y Apps",
+        icono: "fa-sack-dollar",
+        titulo: "Marketing, Ventas y Finanzas Impulsadas por IA 💰",
+        definicion: "Aplica algoritmos de agrupamiento (Clustering) y sistemas de recomendación en marketing para hiper-personalizar ofertas, mientras en finanzas ejecuta modelos de Scoring crediticio, trading algorítmico y detección de anomalías.",
+        formula: "J(C) = ∑_{k=1}^K ∑_{xᵢ ∈ Cₖ} ‖ xᵢ - μₖ ‖²   |   Valor_Esperado = P(Conversiónᵢ) · Ticketᵢ",
+        explicacionFormula: "La primera fórmula es la función objetivo de K-Means que agrupa clientes minimizando la distancia cuadrada de cada usuario x sub i al centroide mu sub k de su segmento. La segunda prioriza prospectos de venta multiplicando su probabilidad de compra por el valor del carrito.",
+        ejemplo: "Espacio 3D de segmentación comercial y financiera: los clientes se agrupan automáticamente en 3 clústeres de color (VIP, Recurrentes y Riesgo Financiero).",
+        setup3D: setupT6_3,
+        secuencia: [
+          {
+            fase: "1. Datos de Clientes sin Segmentar",
+            card: "cardTheory",
+            log: "12 perfiles financieros y comerciales distribuidos en el espacio vectorial.",
+            voz: "Concepto 13: Marketing, ventas y finanzas con IA. Las esferas representan clientes y transacciones financieras según su frecuencia de compra, volumen y nivel de riesgo."
+          },
+          {
+            fase: "2. Segmentación K-Means y Scoring",
+            card: "cardInteractive",
+            log: "3 Clústeres formados: Verde (VIP), Azul (Fidelización), Rojo (Alerta Riesgo).",
+            voz: "Al ejecutar el algoritmo de segmentación, los puntos se agrupan en tres clústeres definidos: clientes VIP en verde, estándar en azul y operaciones de alto riesgo financiero en rojo.",
+            accion: () => actionT6_3('segmentar')
+          }
+        ],
+        controles: [
+          {
+            label: "💰 Ejecutar Segmentación K-Means y Scoring Financiero",
+            accion: () => {
+              actionT6_3('segmentar');
+              narrarAccion("Ejecutando agrupamiento K-Means y modelo de propensión de compra: se identifican los tres segmentos estratégicos aumentando la conversión de ventas en un 42 por ciento y bloqueando el riesgo crediticio.", "K-Means & Scoring: 3 Clústeres óptimos | Conversión +42%");
+            }
+          }
+        ]
+      },
+
+      {
+        id: 13,
+        tema: "Tema 6: Impacto y Apps",
+        icono: "fa-heart-pulse",
+        titulo: "Medicina, Biónica y Biotecnología Aplicadas a la Salud 🏥",
+        definicion: "Revoluciona la salud mediante diagnóstico asistido por IA, descubrimiento de fármacos y plegamiento de proteínas (AlphaFold), además de prótesis biónicas neuro-controladas que decodifican señales eléctricas musculares o cerebrales en movimiento real.",
+        formula: "u_motor(t) = Decoder_RNN( Señal_EMG(t) )   |   E_plegamiento = argmin_R E(Secuencia_Aminoácidos)",
+        explicacionFormula: "En biónica, el comando de movimiento u de los motores de la prótesis es decodificado en tiempo real por una red neuronal a partir de la señal electromiográfica EMG del paciente. En biotecnología, se busca la estructura 3D que minimiza la energía libre de la proteína.",
+        ejemplo: "Mano/Articulación biónica 3D conectada a un sensor neural que traduce el impulso nervioso del paciente en el cierre coordinado de los dedos biónicos.",
+        setup3D: setupT6_4,
+        secuencia: [
+          {
+            fase: "1. Interfaz Neuro-Biónica",
+            card: "cardTheory",
+            log: "Sensor EMG/EEG leyendo impulsos bioeléctricos ➔ Prótesis biónica en espera.",
+            voz: "Concepto 14: Medicina, biónica y biotecnología. En el modelo 3D observas un núcleo receptor neuro-eléctrico conectado a tres falanges articuladas de una prótesis biónica."
+          },
+          {
+            fase: "2. Decodificación IA y Agarre Biónico",
+            card: "cardInteractive",
+            log: "Señal neuronal decodificada en 8 ms ➔ Dedos biónicos ejecutan agarre de precisión.",
+            voz: "Cuando el paciente piensa en cerrar la mano, la red neuronal decodifica el impulso bioeléctrico en ocho milisegundos y flexiona las falanges biónicas con fuerza controlada.",
+            accion: () => actionT6_4('activar_bionica')
+          }
+        ],
+        controles: [
+          {
+            label: "🦿 Enviar Impulso Mioeléctrico (Cerrar Prótesis Biónica)",
+            accion: () => {
+              actionT6_4('activar_bionica');
+              narrarAccion("Decodificando señal mioeléctrica EMG mediante red neuronal: los actuadores biónicos flexionan las tres falanges simultáneamente adaptando la presión al objeto.", "Prótesis Biónica: Agarre completado (Latencia = 8 ms)");
+            }
+          },
+          {
+            label: "✋ Relajar Señal Neural (Abrir Mano Biónica)",
+            accion: () => {
+              actionT6_4('abrir_bionica');
+              narrarAccion("Señal de relajación detectada: los servomotores biónicos retornan las falanges a su posición extendida natural.", "Prótesis Biónica: Estado extendido restaurado");
+            }
+          }
+        ]
+      },
+
+      {
+        id: 14,
+        tema: "Tema 6: Impacto y Apps",
+        icono: "fa-truck-fast",
+        titulo: "Transporte Autónomo, Logística y Manejo de Riesgos 🚗",
+        definicion: "Coordina flotas de vehículos autónomos, drones de reparto y almacenes robotizados mediante comunicación V2X (Vehicle-to-Everything) y optimización predictiva de rutas que evita tormentas, accidentes y roturas de stock.",
+        formula: "min ∑∑ cᵢⱼ · xᵢⱼ + ∑ λ · Riesgo_Ruta(i, j, Clima_t)   [VRP con Riesgo Dinámico]",
+        explicacionFormula: "El problema de enrutamiento de vehículos VRP minimiza la suma de los costos de transporte c sub i j por los tramos elegidos x sub i j, añadiendo una penalización dinámica lambda por el factor de riesgo climático o de tráfico en tiempo real.",
+        ejemplo: "Red logística 3D entre Centro de Distribución y Ciudad Destino: ante una tormenta roja en la ruta central, el dron/flota se desvía automáticamente por el corredor seguro verde.",
+        setup3D: setupT6_5,
+        secuencia: [
+          {
+            fase: "1. Centro de Control Logístico V2X",
+            card: "cardTheory",
+            log: "Flota autónoma entre Almacén Central y Destino | Monitoreando riesgos en ruta.",
+            voz: "Concepto 15: Transporte autónomo, logística y manejo de riesgos. En la escena vemos un dron logístico autónomo preparado para transportar carga entre el centro de distribución y el cliente."
+          },
+          {
+            fase: "2. Mitigación de Riesgo en Tiempo Real",
+            card: "cardInteractive",
+            log: "Alerta de riesgo en corredor central ➔ Flota redirigida por ruta segura (Entrega 100%).",
+            voz: "Al detectarse una zona de alto riesgo en rojo en el corredor central, el sistema logístico recalcula la ruta por el arco exterior verde, garantizando una entrega puntual y sin siniestros.",
+            accion: () => actionT6_5('desviar_flota')
+          }
+        ],
+        controles: [
+          {
+            label: "🚁 Despachar Flota Autónoma Esquivando Zona de Riesgo",
+            accion: () => {
+              actionT6_5('desviar_flota');
+              narrarAccion("Evaluando matriz de riesgo logístico: la ruta directa presenta riesgo severo de colisión o demora. El vehículo autónomo toma la bifurcación segura completando el envío a tiempo.", "Logística IA: Riesgo evitado | Entrega puntual garantizada");
+            }
+          }
+        ]
+      },
+
+      {
+        id: 15,
+        tema: "Tema 6: Impacto y Apps",
+        icono: "fa-headset",
+        titulo: "PLN en Asistentes Virtuales y Atención al Cliente 🗣️",
+        definicion: "Implementa agentes conversacionales multicanal que integran reconocimiento de voz (ASR), clasificación de intención (Intent Recognition), análisis de sentimiento en tiempo real y Generación Aumentada por Recuperación (RAG) conectada a los sistemas de la empresa.",
+        formula: "Intención* = argmax_I P(I | Texto)   |   Respuesta = LLM( Prompt_Usuario, Contexto_RAG )",
+        explicacionFormula: "El clasificador determina la intención más probable del cliente dado su mensaje, mientras el módulo generativo construye la respuesta apoyándose exclusivamente en los documentos oficiales recuperados por RAG para dar soporte exacto.",
+        ejemplo: "Pipeline 3D de Atención al Cliente: Entrada del usuario ➔ Análisis de Intención y Sentimiento ➔ Búsqueda en Base Documental RAG ➔ Resolución empática instantánea.",
+        setup3D: setupT6_6,
+        secuencia: [
+          {
+            fase: "1. Recepción y Análisis de Sentimiento",
+            card: "cardTheory",
+            log: "Consulta entrante ➔ Módulo ASR + Detector de Intención y Sentimiento.",
+            voz: "Concepto 16: PLN en asistentes virtuales y atención al cliente. Los cuatro cilindros representan las etapas desde que el cliente habla hasta que recibe solución."
+          },
+          {
+            fase: "2. Búsqueda RAG y Resolución",
+            card: "cardInteractive",
+            log: "Intención: 'Reembolso' | Sentimiento: Urgente ➔ RAG recupera póliza y resuelve en 2 seg.",
+            voz: "El asistente detecta la intención de reembolso, consulta la base de datos empresarial mediante RAG y emite una solución precisa y empática en dos segundos.",
+            accion: () => actionT6_6('atender')
+          }
+        ],
+        controles: [
+          {
+            label: "🎧 Simular Consulta de Cliente y Resolución con RAG",
+            accion: () => {
+              actionT6_6('atender');
+              narrarAccion("Procesando solicitud del cliente: el módulo PLN identifica la intención con 99 por ciento de certeza, extrae los datos de su factura mediante RAG y resuelve el ticket en el primer contacto.", "Atención IA: Ticket resuelto en 1.8s | Satisfacción CSAT = 98%");
+            }
+          }
+        ]
+      },
+
+      {
+        id: 16,
+        tema: "Tema 6: Impacto y Apps",
+        icono: "fa-plane-up",
+        titulo: "IA en Videojuegos, Música, Aviación y Telecomunicaciones 🎮🎶✈️📡",
+        definicion: "Abarca agentes NPC adaptativos y renderizado neuronal (DLSS) en videojuegos, composición algorítmica en música, sistemas de piloto automático y mantenimiento predictivo en aviación, y antenas 5G/6G con formación de haces (Beamforming) inteligente.",
+        formula: "w_antena = argmax_w ( wᴴ · H · w ) / σ²_ruido   [Beamforming 5G + Control Aeroespacial]",
+        explicacionFormula: "En telecomunicaciones y aviación, el vector de pesos de la antena w se optimiza continuamente sobre la matriz del canal H para dirigir el haz de señal exactamente hacia la aeronave o dispositivo en movimiento, maximizando la relación señal a ruido.",
+        ejemplo: "Escenario integrado 3D: una torre 5G/6G proyecta un haz direccional inteligente que sigue en tiempo real el vuelo de una aeronave autónoma.",
+        setup3D: setupT6_7,
+        secuencia: [
+          {
+            fase: "1. Ecosistema Aeroespacial y Telecom 5G",
+            card: "cardTheory",
+            log: "Torre inteligente 5G/6G a la izquierda | Aeronave con piloto IA en vuelo.",
+            voz: "Concepto 17: IA en videojuegos, música, aviación y telecomunicaciones. En el visor observas una torre de telecomunicaciones inteligente conectada mediante un haz direccional a una aeronave autónoma."
+          },
+          {
+            fase: "2. Beamforming Adaptativo y Piloto IA",
+            card: "cardInteractive",
+            log: "Avión cambia de altitud ➔ Haz 5G y navegación IA se sincronizan en tiempo real.",
+            voz: "Cuando la aeronave asciende estabilizada por su piloto neuronal, la antena recalcula su haz de transmisión en tiempo real manteniendo latencia ultra baja.",
+            accion: () => actionT6_7('volar')
+          }
+        ],
+        controles: [
+          {
+            label: "✈️📡 Ejecutar Maniobra de Vuelo IA y Seguimiento 5G Beamforming",
+            accion: () => {
+              actionT6_7('volar');
+              narrarAccion("Maniobra aeroespacial activada: el piloto automático neuronal ajusta el cabeceo del avión mientras la estación base 5G reorienta su haz electromagnético sin perder conexión.", "Sincronización Aviación + 5G: Latencia = 1.2 ms | Estabilidad 100%");
+            }
+          }
+        ]
+      },
+
+      {
+        id: 17,
+        tema: "Tema 6: Impacto y Apps",
+        icono: "fa-briefcase",
+        titulo: "Impacto en el Empleo, Transformación Laboral y Automatización ⚠️",
+        definicion: "Analiza el desplazamiento de tareas rutinarias y repetitivas frente a la creación y potenciación (Augmentation) de nuevos roles cognitivos, técnicos y creativos mediante la colaboración Humano-IA (Centauros laborales y Re-skilling).",
+        formula: "Productividad_Total = Trabajo_Humano_Creativo × Factor_Potenciación_IA(α > 1)",
+        explicacionFormula: "En lugar de una simple sustitución, cuando el capital humano se capacita en herramientas de IA, el factor multiplicador alfa mayor que uno multiplica la productividad de las tareas analíticas, estratégicas y de supervisión.",
+        ejemplo: "Transformación de perfiles en 3D: las columnas rojas de tareas mecánicas repetitivas disminuyen mientras crecen con fuerza las columnas verdes de nuevos empleos aumentados por IA.",
+        setup3D: setupT6_8,
+        secuencia: [
+          {
+            fase: "1. Tareas Rutinarias vs Empleo Aumentado",
+            card: "cardTheory",
+            log: "Izquierda (Rojo): Tareas repetitivas | Derecha (Verde): Empleos potenciados con IA.",
+            voz: "Concepto 18: Impacto en el empleo y transformación laboral. Las barras rojas representan tareas manuales o administrativas repetitivas, y las verdes representan los nuevos puestos potenciados por IA."
+          },
+          {
+            fase: "2. Re-skilling y Transición Laboral",
+            card: "cardInteractive",
+            log: "Aplicando capacitación (Re-skilling): Tareas rutinarias se automatizan y el empleo calificado crece +65%.",
+            voz: "Mediante programas de reconversión laboral o re-skilling, el trabajo repetitivo es absorbido por las máquinas mientras los profesionales pasan a liderar puestos de alto valor que crecen en verde.",
+            accion: () => actionT6_8('transformar')
+          }
+        ],
+        controles: [
+          {
+            label: "🎓 Aplicar Re-skilling y Transformación a Empleo Aumentado",
+            accion: () => {
+              actionT6_8('transformar');
+              narrarAccion("Simulando transición laboral con capacitación en IA: disminuye la carga de tareas mecánicas rutinarias y se disparan las oportunidades en ingeniería, supervisión ética y creatividad asistida.", "Transformación Laboral: Productividad por trabajador +65%");
+            }
+          }
+        ]
+      },
+
+      {
+        id: 18,
+        tema: "Tema 6: Impacto y Apps",
+        icono: "fa-hand-holding-dollar",
+        titulo: "Sueldo Universal y Adaptación al Futuro del Trabajo 💵",
+        definicion: "Estudia propuestas macroeconómicas como la Renta Básica Universal (UBI) y el Dividendo Digital de Automatización, donde parte de la riqueza excedente generada por fábricas e infraestructuras autónomas se redistribuye a la ciudadanía para sostener el consumo y el bienestar social.",
+        formula: "UBI_Ciudadano = ( τ_robot · PIB_Automatizado ) / Población_Total   ≥   Umbral_Bienestar",
+        explicacionFormula: "El ingreso básico universal por ciudadano se modela recaudando una tasa fiscal tau sobre el Producto Interno Bruto generado por sistemas autónomos, distribuido equitativamente entre la población para garantizar un piso de dignidad económica.",
+        ejemplo: "Ecosistema económico circular 3D: el gran núcleo central de Producción Automatizada por IA distribuye flujos de riqueza hacia los 6 nodos ciudadanos que lo rodean.",
+        setup3D: setupT6_9,
+        secuencia: [
+          {
+            fase: "1. Alta Productividad Automatizada",
+            card: "cardTheory",
+            log: "Núcleo Central: Riqueza generada por IA Industrial | Anillo Exterior: 6 Nodos Ciudadanos.",
+            voz: "Concepto 19: Sueldo universal y adaptación al futuro del trabajo. En el centro observas el núcleo dorado de producción automatizada rodeado por seis esferas que representan a las familias y ciudadanos."
+          },
+          {
+            fase: "2. Redistribución de Dividendo Tecnológico (UBI)",
+            card: "cardInteractive",
+            log: "Dividendo de IA activado: Renta Universal distribuida ➔ Todos los nodos ciudadanos en verde.",
+            voz: "Al activar el mecanismo de dividendo digital y sueldo universal, los canales de distribución se iluminan en verde transfiriendo recursos a todos los ciudadanos para impulsar la educación y la economía.",
+            accion: () => actionT6_9('distribuir_ubi')
+          }
+        ],
+        controles: [
+          {
+            label: "💵 Activar Distribución de Sueldo Universal (Dividendo de IA)",
+            accion: () => {
+              actionT6_9('distribuir_ubi');
+              narrarAccion("Activando flujo macroeconómico de Renta Básica Universal: el excedente de productividad robótica fluye por los enlaces hacia cada nodo ciudadano, asegurando estabilidad económica y poder adquisitivo.", "Economía Circular IA: Cobertura de Bienestar Social = 100%");
+            }
+          }
+        ]
+      },
+
+      {
+        id: 19,
+        tema: "Tema 6: Impacto y Apps",
+        icono: "fa-scale-balanced",
+        titulo: "Ética, Regulación y Desafíos Sociales ante la IA ⚖️",
+        definicion: "Establece los principios de IA Responsable: Equidad algorítmica (Fairness para evitar sesgos discriminatorios), Transparencia, Privacidad de datos, Seguridad, Responsabilidad legal y marcos regulatorios como el AI Act europeo.",
+        formula: "| P(Ŷ=1 | Grupo=A) - P(Ŷ=1 | Grupo=B) | ≤ ε_equidad   [Paridad Demográfica & Auditoría]",
+        explicacionFormula: "La condición matemática de equidad o Fairness exige que la diferencia absoluta entre la probabilidad de otorgar un beneficio al grupo demográfico A y al grupo B sea menor o igual que una tolerancia mínima épsilon cercana a cero, eliminando cualquier sesgo.",
+        ejemplo: "Balanza de la Justicia Algorítmica 3D: equilibra el platillo de la Innovación Tecnológica con el platillo de los Derechos Humanos, Privacidad y Mitigación de Sesgos.",
+        setup3D: setupT6_10,
+        secuencia: [
+          {
+            fase: "1. Desequilibrio por Sesgo Algorítmico",
+            card: "cardTheory",
+            log: "Balanza inclinada: Despliegue sin auditoría genera sesgo y riesgo de privacidad.",
+            voz: "Concepto 20: Ética, regulación y desafíos sociales de la IA. Observa la balanza tridimensional: cuando se despliega tecnología sin control ético, la balanza se inclina peligrosamente."
+          },
+          {
+            fase: "2. Auditoría Ética y Equilibrio Regulatorio",
+            card: "cardInteractive",
+            log: "Aplicando Regulación (AI Act) + Paridad Demográfica (ε < 0.01) ➔ Balanza en equilibrio perfecto.",
+            voz: "Al aplicar auditoría de sesgos, protección de privacidad y supervisión humana, la balanza ética recupera su horizontalidad perfecta en color verde, logrando una Inteligencia Artificial segura y justa.",
+            accion: () => actionT6_10('equilibrar')
+          }
+        ],
+        controles: [
+          {
+            label: "⚠️ Simular Modelo con Sesgo No Auditado (Desequilibrio Ético)",
+            accion: () => {
+              actionT6_10('sesgo');
+              narrarAccion("Alerta ética: al entrenar el modelo con datos históricos sesgados sin auditoría, se viola la paridad demográfica y la balanza se inclina en rojo perjudicando a grupos vulnerables.", "¡Violación Ética! Sesgo detectado (Diferencia demográfica = 28%)");
+            }
+          },
+          {
+            label: "⚖️ Aplicar Auditoría Algorítmica y Regulación (Equilibrar IA)",
+            accion: () => {
+              actionT6_10('equilibrar');
+              narrarAccion("Aplicando marco regulatorio y mitigación de sesgos: se igualan las tasas de acierto entre todos los grupos demográficos con épsilon menor a 0.01 y la balanza se estabiliza en equilibrio ético.", "Auditoría Aprobada: IA Equitativa, Transparente y Segura");
+            }
+          }
+        ]
+      }
+    ];
+
+    /* =========================================================================
+       VARIABLES DE CONTROL DEL SISTEMA Y VOZ
+       ========================================================================= */
+    let currentConceptIndex = 0;
+    let currentStepIndex = 0;
+    let isSimRunning = false;
+    let isMuted = false;
+    let animSpeedMultiplier = 1.0;
+    let speechSynth = window.speechSynthesis;
+    let sequenceTimeout = null;
+
+    window.addEventListener('DOMContentLoaded', () => {
+      initThreeJS();
+      renderConceptMenu();
+      loadConcept(0);
+      setupGlobalEventListeners();
+    });
+
+    function initThreeJS() {
+      const container = document.querySelector('.viewport-container');
+      const canvas = document.getElementById('threejs-canvas');
+      
+      scene = new THREE.Scene();
+      scene.background = new THREE.Color(0xf1f5f9);
+
+      camera = new THREE.PerspectiveCamera(42, container.clientWidth / container.clientHeight, 0.1, 1000);
+      camera.position.set(11, 8.5, 13);
+
+      renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true });
+      renderer.setSize(container.clientWidth, container.clientHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.shadowMap.enabled = true;
+
+      controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.06;
+      controls.maxPolarAngle = Math.PI / 2 + 0.05;
+
+      scene.add(new THREE.AmbientLight(0xffffff, 0.82));
+
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.85);
+      dirLight.position.set(15, 25, 18);
+      dirLight.castShadow = true;
+      scene.add(dirLight);
+
+      const fillLight = new THREE.DirectionalLight(0xbae6fd, 0.45);
+      fillLight.position.set(-15, 10, -12);
+      scene.add(fillLight);
+
+      const grid = new THREE.GridHelper(24, 24, 0x94a3b8, 0xe2e8f0);
+      grid.position.y = -0.02;
+      scene.add(grid);
+
+      window.addEventListener('resize', () => {
+        camera.aspect = container.clientWidth / container.clientHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(container.clientWidth, container.clientHeight);
+      });
+
+      animateLoop();
+    }
+
+    function animateLoop() {
+      requestAnimationFrame(animateLoop);
+      controls.update();
+      const now = performance.now() * 0.001;
+      activeAnimations.forEach(fn => fn(now));
+      renderer.render(scene, camera);
+    }
+
+    /* =========================================================================
+       NAVEGACIÓN Y CARGA DE CONCEPTOS
+       ========================================================================= */
+    function renderConceptMenu() {
+      const listContainer = document.getElementById('conceptListContainer');
+      listContainer.innerHTML = '';
+
+      CONCEPTO_DATA.forEach((c, index) => {
+        const item = document.createElement('div');
+        item.className = `concept-item d-flex align-items-center gap-2 ${index === 0 ? 'active' : ''}`;
+        item.id = `concept-btn-${index}`;
+        item.onclick = () => loadConcept(index);
+
+        item.innerHTML = `
+          <i class="fa-solid ${c.icono} text-primary" style="width: 20px;"></i>
+          <div class="flex-grow-1 text-truncate">
+            <div class="small fw-semibold text-truncate">${index + 1}. ${c.titulo}</div>
+            <span class="badge ${c.tema.includes('Tema 5') ? 'bg-info text-dark' : 'bg-primary'} text-white" style="font-size:0.62rem;">
+              ${c.tema}
+            </span>
+          </div>
+        `;
+        listContainer.appendChild(item);
+      });
+    }
+
+    function loadConcept(index) {
+      stopAllAudioAndSim();
+
+      currentConceptIndex = index;
+      currentStepIndex = 0;
+
+      document.querySelectorAll('.concept-item').forEach(el => el.classList.remove('active'));
+      const activeBtn = document.getElementById(`concept-btn-${index}`);
+      if (activeBtn) {
+        activeBtn.classList.add('active');
+        activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+
+      const c = CONCEPTO_DATA[index];
+
+      document.getElementById('conceptCounter').innerText = `${index + 1} / 20`;
+      document.getElementById('hudTopicCategory').innerHTML = `<i class="fa-solid ${c.icono} text-primary"></i> ${index + 1}. ${c.titulo}`;
+      document.getElementById('hudStepBadge').innerText = `Fase: Escenario Inicial`;
+      document.getElementById('detDescription').innerText = c.definicion;
+      document.getElementById('detFormula').innerText = c.formula;
+      document.getElementById('detFormulaExplain').innerText = `💡 Explicación de la fórmula: ${c.explicacionFormula}`;
+      document.getElementById('detExample').innerText = c.ejemplo;
+      document.getElementById('simStepLog').innerText = "Escenario 3D listo. Pulsa 'Explicar Todo y Simular 3D' o usa los controles interactivos.";
+      document.getElementById('simMetricBadge').innerText = "En espera";
+      document.getElementById('txtSubtitles').innerHTML = `Cargado: <strong>${c.titulo}</strong>. Pulsa iniciar o prueba las acciones interactivas.`;
+
+      clearHighlights();
+      clearDynamicMeshes();
+
+      camera.position.set(11, 8.5, 13);
+      controls.target.set(0, 1.2, 0);
+      controls.autoRotate = false;
+      controls.update();
+
+      renderCustomControls(c.controles);
+      c.setup3D();
+    }
+
+    function renderCustomControls(controles) {
+      const container = document.getElementById('dynamicCustomControls');
+      container.innerHTML = '';
+      if (!controles) return;
+
+      controles.forEach(ctrl => {
+        const btn = document.createElement('button');
+        btn.className = "btn btn-outline-primary btn-sm text-start fw-semibold d-flex justify-content-between align-items-center";
+        btn.innerHTML = `<span>${ctrl.label}</span> <i class="fa-solid fa-volume-high small ms-2"></i>`;
+        btn.onclick = () => {
+          stopAllAudioAndSim();
+          ctrl.accion();
+        };
+        container.appendChild(btn);
+      });
+    }
+
+    function clearDynamicMeshes() {
+      activeAnimations = [];
+      dynamicMeshes.forEach(mesh => {
+        scene.remove(mesh);
+        if (mesh.geometry) mesh.geometry.dispose();
+        if (mesh.material) {
+          if (Array.isArray(mesh.material)) mesh.material.forEach(m => m.dispose());
+          else mesh.material.dispose();
+        }
+      });
+      dynamicMeshes = [];
+    }
+
+    function clearHighlights() {
+      document.getElementById('cardTheory').classList.remove('speaking-highlight');
+      document.getElementById('cardInteractive').classList.remove('speaking-highlight');
+      document.getElementById('detFormula').classList.remove('speaking-highlight');
+    }
+
+    /* =========================================================================
+       MOTOR DE VOZ Y SECUENCIA SINCRONIZADA
+       ========================================================================= */
+    function speakText(text, onEndCallback) {
+      document.getElementById('txtSubtitles').innerHTML = `<strong>Narrador:</strong> "${text}"`;
+
+      if (isMuted || !('speechSynthesis' in window)) {
+        document.getElementById('lblAudioStatus').innerHTML = `<i class="fa-solid fa-volume-xmark text-muted me-1"></i> Modo Silencio (Subtítulos)`;
+        if (onEndCallback) sequenceTimeout = setTimeout(onEndCallback, 2800 / animSpeedMultiplier);
+        return;
+      }
+
+      speechSynth.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = 'es-ES';
+      utterance.rate = 1.02 * animSpeedMultiplier;
+
+      const voices = speechSynth.getVoices();
+      const bestVoice = voices.find(v => v.lang.startsWith('es') && (v.name.includes('Natural') || v.name.includes('Google') || v.name.includes('Sabina') || v.name.includes('Helena') || v.name.includes('Mexico') || v.name.includes('Spain'))) || voices.find(v => v.lang.startsWith('es'));
+      if (bestVoice) utterance.voice = bestVoice;
+
+      const indicator = document.getElementById('voiceIndicator');
+
+      utterance.onstart = () => {
+        indicator.classList.remove('d-none');
+        document.getElementById('lblAudioStatus').innerHTML = `<i class="fa-solid fa-waveform-lines text-primary me-1"></i> Narrando en tiempo real...`;
+      };
+
+      utterance.onend = () => {
+        indicator.classList.add('d-none');
+        document.getElementById('lblAudioStatus').innerHTML = `<i class="fa-solid fa-check text-success me-1"></i> Explicación lista`;
+        if (onEndCallback) onEndCallback();
+      };
+
+      utterance.onerror = () => {
+        indicator.classList.add('d-none');
+        if (onEndCallback) onEndCallback();
+      };
+
+      speechSynth.speak(utterance);
+    }
+
+    function narrarAccion(textoHablado, textoLog) {
+      clearHighlights();
+      document.getElementById('cardInteractive').classList.add('speaking-highlight');
+      document.getElementById('simStepLog').innerText = textoLog;
+      document.getElementById('simMetricBadge').innerText = "Simulación en Vivo";
+      document.getElementById('hudStepBadge').innerText = "Interacción Activa";
+      speakText(textoHablado, clearHighlights);
+    }
+
+    window.narrarApartado = function(tipo) {
+      stopAllAudioAndSim();
+      const c = CONCEPTO_DATA[currentConceptIndex];
+      clearHighlights();
+
+      if (tipo === 'definicion') {
+        document.getElementById('cardTheory').classList.add('speaking-highlight');
+        speakText(`Definición de ${c.titulo}: ${c.definicion}`, clearHighlights);
+      } else if (tipo === 'formula') {
+        document.getElementById('detFormula').classList.add('speaking-highlight');
+        speakText(`Explicación de la fórmula: ${c.explicacionFormula}`, clearHighlights);
+      } else if (tipo === 'ejemplo') {
+        document.getElementById('cardInteractive').classList.add('speaking-highlight');
+        speakText(`Aplicación práctica: ${c.ejemplo}`, clearHighlights);
+      }
+    };
+
+    function runFullNarratedSequence() {
+      stopAllAudioAndSim();
+      isSimRunning = true;
+      currentStepIndex = 0;
+      document.getElementById('btnPlaySim').disabled = true;
+
+      const c = CONCEPTO_DATA[currentConceptIndex];
+      const pasos = [
+        ...c.secuencia.slice(0, 1),
+        {
+          fase: "Explicación de Fórmula",
+          card: "formula",
+          log: `Modelo Matemático: ${c.formula}`,
+          voz: c.explicacionFormula
+        },
+        ...c.secuencia.slice(1)
+      ];
+
+      function ejecutarPaso(idx) {
+        if (!isSimRunning || idx >= pasos.length) {
+          isSimRunning = false;
+          document.getElementById('btnPlaySim').disabled = false;
+          document.getElementById('simMetricBadge').innerText = "Completado";
+          clearHighlights();
+          return;
+        }
+
+        const paso = pasos[idx];
+        clearHighlights();
+        if (paso.card === 'formula') document.getElementById('detFormula').classList.add('speaking-highlight');
+        else if (paso.card) document.getElementById(paso.card).classList.add('speaking-highlight');
+
+        document.getElementById('hudStepBadge').innerText = paso.fase;
+        document.getElementById('simStepLog').innerText = paso.log;
+        document.getElementById('simMetricBadge').innerText = `Paso ${idx + 1}/${pasos.length}`;
+
+        if (paso.accion) paso.accion();
+
+        speakText(paso.voz, () => {
+          if (isSimRunning) sequenceTimeout = setTimeout(() => ejecutarPaso(idx + 1), 350);
+        });
+      }
+
+      ejecutarPaso(0);
+    }
+
+    function runSingleManualStep() {
+      stopAllAudioAndSim();
+      const c = CONCEPTO_DATA[currentConceptIndex];
+      const pasos = c.secuencia;
+      if (currentStepIndex >= pasos.length) currentStepIndex = 0;
+
+      const paso = pasos[currentStepIndex];
+      clearHighlights();
+      if (paso.card) document.getElementById(paso.card).classList.add('speaking-highlight');
+
+      document.getElementById('hudStepBadge').innerText = paso.fase;
+      document.getElementById('simStepLog').innerText = paso.log;
+      document.getElementById('simMetricBadge').innerText = `Paso ${currentStepIndex + 1}/${pasos.length}`;
+
+      if (paso.accion) paso.accion();
+      speakText(paso.voz, clearHighlights);
+
+      currentStepIndex = (currentStepIndex + 1) % pasos.length;
+    }
+
+    function stopAllAudioAndSim() {
+      isSimRunning = false;
+      if (sequenceTimeout) { clearTimeout(sequenceTimeout); sequenceTimeout = null; }
+      if ('speechSynthesis' in window) speechSynth.cancel();
+      document.getElementById('voiceIndicator').classList.add('d-none');
+      document.getElementById('btnPlaySim').disabled = false;
+      clearHighlights();
+    }
+
+    function setupGlobalEventListeners() {
+      document.getElementById('btnPlaySim').onclick = runFullNarratedSequence;
+      document.getElementById('btnNextStepManual').onclick = runSingleManualStep;
+      document.getElementById('btnPauseSim').onclick = stopAllAudioAndSim;
+      document.getElementById('btnResetSim').onclick = () => loadConcept(currentConceptIndex);
+
+      document.getElementById('btnPrevConcept').onclick = () => {
+        if (currentConceptIndex > 0) loadConcept(currentConceptIndex - 1);
+      };
+      document.getElementById('btnNextConcept').onclick = () => {
+        if (currentConceptIndex < CONCEPTO_DATA.length - 1) loadConcept(currentConceptIndex + 1);
+      };
+
+      document.getElementById('btnResetCamera').onclick = () => {
+        camera.position.set(11, 8.5, 13);
+        controls.target.set(0, 1.2, 0);
+        controls.update();
+      };
+
+      document.getElementById('btnToggleRotate').onclick = () => {
+        controls.autoRotate = !controls.autoRotate;
+      };
+
+      document.getElementById('simSpeed').onchange = (e) => {
+        animSpeedMultiplier = parseFloat(e.target.value);
+      };
+
+      document.getElementById('btnMuteToggle').onclick = () => {
+        isMuted = !isMuted;
+        document.getElementById('iconMute').className = isMuted ? 'fa-solid fa-volume-xmark text-danger' : 'fa-solid fa-volume-high';
+        if (isMuted) speechSynth.cancel();
+      };
+    }
+
+    /* =========================================================================
+       CONSTRUCTORES Y SIMULACIONES 3D DE LOS 20 CONCEPTOS (TEMA 5 Y TEMA 6)
+       ========================================================================= */
+
+    // --- 1. ROBÓTICA Y AUTOMATIZACIÓN AVANZADA ---
+    let robotArmGroup, robotForearm, robotPiece, robotLabel;
+    function setupT5_1() {
+      const base = register3D(new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.6, 0.6, 24), new THREE.MeshStandardMaterial({ color: 0x334155 })));
+      base.position.set(-2, 0.3, 0);
+
+      robotArmGroup = register3D(new THREE.Group());
+      robotArmGroup.position.set(-2, 0.6, 0);
+
+      const lowerArm = new THREE.Mesh(new THREE.BoxGeometry(0.6, 3.0, 0.6), new THREE.MeshStandardMaterial({ color: 0x2563eb }));
+      lowerArm.position.set(0, 1.5, 0);
+      robotArmGroup.add(lowerArm);
+
+      robotForearm = new THREE.Group();
+      robotForearm.position.set(0, 3.0, 0);
+      const upperMesh = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.5, 0.5), new THREE.MeshStandardMaterial({ color: 0x0284c7 }));
+      upperMesh.position.set(1.6, 0, 0);
+      robotForearm.add(upperMesh);
+      robotArmGroup.add(robotForearm);
+
+      robotPiece = register3D(new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.1, 1.1), new THREE.MeshStandardMaterial({ color: 0xd97706 })));
+      robotPiece.position.set(2.2, 0.55, 0);
+      createLabel3D("Pieza Industrial", 2.2, 1.8, 0, "#d97706", "#fff", 2.8);
+
+      robotLabel = createLabel3D("Brazo Robótico 3-DOF (Cinemática Lista)", -1.5, 4.8, 0, "#2563eb", "#fff", 4.2);
+    }
+
+    function actionT5_1(mode) {
+      if (!robotArmGroup) return;
+      if (mode === 'ensamblar') {
+        robotArmGroup.rotation.z = -0.28;
+        robotForearm.rotation.z = -0.55;
+        robotPiece.material.color.setHex(0x16a34a);
+        robotPiece.position.set(1.6, 1.2, 0);
+        updateLabel3D(robotLabel, "✅ Cinemática J⁻¹(θ): Pieza Ensamblada", "#16a34a");
+      } else {
+        robotArmGroup.rotation.z = 0;
+        robotForearm.rotation.z = 0;
+        robotPiece.material.color.setHex(0xd97706);
+        robotPiece.position.set(2.2, 0.55, 0);
+        updateLabel3D(robotLabel, "Posición Home Restaurada (θ = 0°)", "#2563eb");
+      }
+    }
+
+    // --- 2. VISIÓN ARTIFICIAL ---
+    let cvTargetMesh, cvBoundingBox, cvBanner;
+    function setupT5_2() {
+      // Cámara a la izquierda
+      const camBody = register3D(new THREE.Mesh(new THREE.BoxGeometry(1.4, 1.0, 1.0), new THREE.MeshStandardMaterial({ color: 0x1e293b })));
+      camBody.position.set(-4, 2.2, 0);
+      createLabel3D("Cámara CNN / YOLO", -4, 3.4, 0, "#1e293b", "#fff", 3.0);
+
+      // Cono de visión
+      const cone = register3D(new THREE.Mesh(new THREE.ConeGeometry(2.2, 5.5, 16, 1, true), new THREE.MeshBasicMaterial({ color: 0x38bdf8, wireframe: true, transparent: true, opacity: 0.45 })));
+      cone.rotation.z = Math.PI / 2;
+      cone.position.set(-1.0, 1.8, 0);
+
+      // Objeto inspeccionado
+      cvTargetMesh = register3D(new THREE.Mesh(new THREE.CylinderGeometry(0.9, 0.9, 1.8, 24), new THREE.MeshStandardMaterial({ color: 0x64748b })));
+      cvTargetMesh.position.set(2.2, 0.9, 0);
+
+      // Bounding Box 3D
+      cvBoundingBox = register3D(new THREE.Mesh(new THREE.BoxGeometry(2.3, 2.3, 2.3), new THREE.MeshBasicMaterial({ color: 0x16a34a, wireframe: true })));
+      cvBoundingBox.position.set(2.2, 1.1, 0);
+      cvBoundingBox.visible = false;
+
+      cvBanner = createLabel3D("Escáner Óptico en Espera", 2.2, 3.2, 0, "#475569", "#fff", 3.8);
+    }
+
+    function actionT5_2(mode) {
+      if (!cvBoundingBox) return;
+      cvBoundingBox.visible = true;
+      if (mode === 'detectar') {
+        cvBoundingBox.material.color.setHex(0x16a34a);
+        cvTargetMesh.material.color.setHex(0x0284c7);
+        updateLabel3D(cvBanner, "✅ Bounding Box: IoU=0.94 | Confianza 99.4%", "#16a34a");
+      } else {
+        cvBoundingBox.material.color.setHex(0xdc2626);
+        cvTargetMesh.material.color.setHex(0xdc2626);
+        updateLabel3D(cvBanner, "⚠️ Defecto Detectado por Visión (Rechazo)", "#dc2626");
+      }
+    }
+
+    // --- 3. ALGORITMOS GENÉTICOS Y OPTIMIZACIÓN EVOLUTIVA ---
+    let dnaNodes = [], dnaLabel;
+    function setupT5_3() {
+      dnaNodes = [];
+      for (let i = 0; i < 10; i++) {
+        const angle = i * 0.65;
+        const x = -4.5 + i * 1.0;
+        const y1 = 2.0 + Math.sin(angle) * 1.3;
+        const z1 = Math.cos(angle) * 1.3;
+        const y2 = 2.0 - Math.sin(angle) * 1.3;
+        const z2 = -Math.cos(angle) * 1.3;
+
+        const s1 = register3D(new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 16), new THREE.MeshStandardMaterial({ color: 0x2563eb })));
+        s1.position.set(x, y1, z1);
+        const s2 = register3D(new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 16), new THREE.MeshStandardMaterial({ color: 0x0284c7 })));
+        s2.position.set(x, y2, z2);
+
+        createCylinderEdge(s1.position, s2.position, 0.06, 0xcbd5e1);
+        dnaNodes.push(s1, s2);
+      }
+      dnaLabel = createLabel3D("Población Genética: Generación 1", 0, 4.5, 0, "#2563eb", "#fff", 4.2);
+    }
+
+    function actionT5_3(mode) {
+      if (mode === 'evolucionar') {
+        dnaNodes.forEach(n => n.material.color.setHex(0x16a34a));
+        updateLabel3D(dnaLabel, "🧬 Generación 50: Cromosoma Óptimo (Fitness 99.1%)", "#16a34a");
+      } else {
+        dnaNodes.forEach((n, i) => n.material.color.setHex(i % 3 === 0 ? 0xd97706 : 0x2563eb));
+        updateLabel3D(dnaLabel, "⚡ Mutación Estocástica Aplicada (ε = 5%)", "#d97706");
+      }
+    }
+
+    // --- 4. PROCESAMIENTO DEL LENGUAJE NATURAL (PLN) ---
+    let nlpTokens = [], nlpAttentionArcs = [], nlpBanner;
+    function setupT5_4() {
+      nlpTokens = []; nlpAttentionArcs = [];
+      const words = [
+        { w: "Token 1: 'El'", x: -4.5 },
+        { w: "Token 2: 'Banco'", x: -1.5 },
+        { w: "Token 3: 'aprobó'", x: 1.5 },
+        { w: "Token 4: 'crédito'", x: 4.5 }
+      ];
+
+      words.forEach(item => {
+        const sp = register3D(new THREE.Mesh(new THREE.SphereGeometry(0.6, 24, 24), new THREE.MeshStandardMaterial({ color: 0x2563eb })));
+        sp.position.set(item.x, 1.0, 0);
+        nlpTokens.push(sp);
+        createLabel3D(item.w, item.x, 2.2, 0, "#1e293b", "#fff", 2.8);
+      });
+
+      const pairs = [[1, 3, 2.8], [1, 2, 1.8], [0, 1, 1.2]];
+      pairs.forEach(([a, b, h]) => {
+        const curve = new THREE.CatmullRomCurve3([
+          nlpTokens[a].position,
+          new THREE.Vector3((nlpTokens[a].position.x + nlpTokens[b].position.x)/2, h, 0),
+          nlpTokens[b].position
+        ]);
+        const arc = register3D(new THREE.Mesh(new THREE.TubeGeometry(curve, 24, 0.07, 8, false), new THREE.MeshStandardMaterial({ color: 0xcbd5e1 })));
+        nlpAttentionArcs.push(arc);
+      });
+
+      nlpBanner = createLabel3D("Embeddings Listos para Self-Attention", 0, 4.2, 0, "#2563eb", "#fff", 4.2);
+    }
+
+    function actionT5_4() {
+      nlpTokens[1].material.color.setHex(0x16a34a);
+      nlpTokens[3].material.color.setHex(0x16a34a);
+      nlpAttentionArcs[0].material.color.setHex(0xeab308);
+      updateLabel3D(nlpBanner, "Self-Attention: 'Banco' ⟷ 'crédito' (Peso = 0.92)", "#16a34a");
+    }
+
+    // --- 5. REDES NEURONALES Y APRENDIZAJE PROFUNDO ---
+    let dlNeurons = [], dlEdges = [], dlStatus;
+    function setupT5_5() {
+      dlNeurons = []; dlEdges = [];
+      const layers = [-4.0, 0, 4.0];
+      layers.forEach((lx, lIdx) => {
+        const layerArr = [];
+        for (let i = 0; i < 3; i++) {
+          const sp = register3D(new THREE.Mesh(new THREE.SphereGeometry(0.48, 20, 20), new THREE.MeshStandardMaterial({ color: 0x64748b })));
+          sp.position.set(lx, 0.8 + i * 1.4, 0);
+          layerArr.push(sp);
+        }
+        dlNeurons.push(layerArr);
+      });
+
+      for (let l = 0; l < 2; l++) {
+        dlNeurons[l].forEach(n1 => {
+          dlNeurons[l+1].forEach(n2 => {
+            dlEdges.push(createCylinderEdge(n1.position, n2.position, 0.04, 0xcbd5e1));
+          });
+        });
+      }
+
+      createLabel3D("Capa Entrada X", -4.0, 4.6, 0, "#334155", "#fff", 2.6);
+      createLabel3D("Capa Oculta ReLU", 0, 4.6, 0, "#2563eb", "#fff", 2.8);
+      createLabel3D("Salida Softmax", 4.0, 4.6, 0, "#16a34a", "#fff", 2.6);
+      dlStatus = createLabel3D("Red Deep Learning Inicializada", 0, 5.7, 0, "#1e293b", "#fff", 4.0);
+    }
+
+    function actionT5_5(mode) {
+      if (mode === 'forward') {
+        dlNeurons.flat().forEach(n => n.material.color.setHex(0x0284c7));
+        dlEdges.forEach(e => e.material.color.setHex(0x38bdf8));
+        updateLabel3D(dlStatus, "➡️ Forward Pass: Activación a⁽ˡ⁾ = σ(W·a + b)", "#0284c7");
+      } else {
+        dlNeurons.flat().forEach(n => n.material.color.setHex(0x16a34a));
+        dlEdges.forEach(e => e.material.color.setHex(0xeab308));
+        updateLabel3D(dlStatus, "⬅️ Backpropagation: Pesos W Optimizado (Precisión 98.5%)", "#16a34a");
+      }
+    }
+
+    // --- 6. AGENTES INTELIGENTES Y SISTEMAS AUTÓNOMOS ---
+    let agBot, agLabel;
+    function setupT5_6() {
+      // Meta menor (Izquierda)
+      const g1 = register3D(new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 0.4, 20), new THREE.MeshStandardMaterial({ color: 0x64748b })));
+      g1.position.set(-4.2, 0.2, 0);
+      createLabel3D("Meta A: Utilidad +10", -4.2, 1.4, 0, "#475569", "#fff", 2.8);
+
+      // Meta Óptima (Derecha)
+      const g2 = register3D(new THREE.Mesh(new THREE.CylinderGeometry(0.65, 0.65, 0.5, 24), new THREE.MeshStandardMaterial({ color: 0xeab308 })));
+      g2.position.set(4.2, 0.25, 0);
+      createLabel3D("Meta B: Utilidad +95 (Óptima)", 4.2, 1.5, 0, "#16a34a", "#fff", 3.4);
+
+      agBot = register3D(new THREE.Mesh(new THREE.SphereGeometry(0.65, 28, 28), new THREE.MeshStandardMaterial({ color: 0x2563eb })));
+      agBot.position.set(0, 0.65, 0);
+      agLabel = createLabel3D("Agente Autónomo: Evaluando U(s')", 0, 2.2, 0, "#2563eb", "#fff", 3.8);
+    }
+
+    function actionT5_6() {
+      const steps = [0, 1.4, 2.8, 4.2];
+      steps.forEach((px, idx) => {
+        setTimeout(() => {
+          if (!agBot) return;
+          agBot.position.x = px;
+          agLabel.position.x = px;
+          if (idx === steps.length - 1) {
+            agBot.material.color.setHex(0x16a34a);
+            updateLabel3D(agLabel, "✅ Acción Racional: Utilidad +95 Alcanzada", "#16a34a");
+          }
+        }, idx * 240);
+      });
+    }
+
+    // --- 7. EVOLUCIÓN DE LOS SISTEMAS EXPERTOS ---
+    let evoPillars = [], evoBanner;
+    function setupT5_7() {
+      evoPillars = [];
+      const eras = [
+        { name: "1976: MYCIN (Reglas Puras)", x: -4.2, h: 1.8 },
+        { name: "2005: Motores Web & OWL", x: 0, h: 2.6 },
+        { name: "Hoy: Experto Híbrido + LLM", x: 4.2, h: 3.5 }
+      ];
+
+      eras.forEach(e => {
+        const box = register3D(new THREE.Mesh(new THREE.BoxGeometry(2.0, e.h, 1.6), new THREE.MeshStandardMaterial({ color: 0x64748b })));
+        box.position.set(e.x, e.h / 2, 0);
+        evoPillars.push(box);
+        createLabel3D(e.name, e.x, e.h + 0.9, 0, "#1e293b", "#fff", 3.3);
+      });
+
+      createCylinderEdge(new THREE.Vector3(-4.2, 1.0, 0), new THREE.Vector3(4.2, 2.0, 0), 0.1, 0x94a3b8);
+      evoBanner = createLabel3D("Línea Evolutiva de Sistemas Expertos", 0, 5.2, 0, "#2563eb", "#fff", 4.2);
+    }
+
+    function actionT5_7() {
+      const cols = [0x0284c7, 0x2563eb, 0x16a34a];
+      evoPillars.forEach((p, i) => p.material.color.setHex(cols[i]));
+      updateLabel3D(evoBanner, "✅ Evolución Híbrida: Razonamiento Formal + IA Moderna", "#16a34a");
+    }
+
+    // --- 8. PRINCIPIOS DE LOS SISTEMAS EXPERTOS E INTEGRACIÓN ---
+    let seModules = [], seStatus;
+    function setupT5_8() {
+      seModules = [];
+      const mods = [
+        { name: "Base de Conocimiento", x: -3.5, y: 1.0, col: 0x2563eb },
+        { name: "Memoria de Trabajo", x: 3.5, y: 1.0, col: 0x0284c7 },
+        { name: "Motor de Inferencia", x: 0, y: 1.0, col: 0xd97706 },
+        { name: "Subsistema Explicación XAI", x: 0, y: 3.4, col: 0x16a34a }
+      ];
+
+      mods.forEach(m => {
+        const b = register3D(new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.2, 1.5), new THREE.MeshStandardMaterial({ color: m.col })));
+        b.position.set(m.x, m.y, 0);
+        seModules.push(b);
+        createLabel3D(m.name, m.x, m.y + 1.1, 0, "#1e293b", "#fff", 3.1);
+      });
+
+      createCylinderEdge(seModules[0].position, seModules[2].position, 0.08, 0x94a3b8);
+      createCylinderEdge(seModules[1].position, seModules[2].position, 0.08, 0x94a3b8);
+      createCylinderEdge(seModules[2].position, seModules[3].position, 0.08, 0x94a3b8);
+      seStatus = createLabel3D("Arquitectura Separada: Conocimiento vs Inferencia", 0, 5.2, 0, "#2563eb", "#fff", 4.5);
+    }
+
+    function actionT5_8() {
+      seModules.forEach(m => m.scale.set(1.15, 1.15, 1.15));
+      seModules[3].material.color.setHex(0x16a34a);
+      updateLabel3D(seStatus, "✅ Inferencia y Trazabilidad XAI Generadas", "#16a34a");
+    }
+
+    // --- 9. DESARROLLO EN CLIPS (RED RETE) ---
+    let clipsNodes = [], clipsBanner;
+    function setupT5_9() {
+      clipsNodes = [];
+      const coords = [
+        { name: "Nodo Alfa 1: (sensor)", x: -2.8, y: 3.8 },
+        { name: "Nodo Alfa 2: (temp > 90)", x: 2.8, y: 3.8 },
+        { name: "Nodo Beta (Join Rete)", x: 0, y: 2.0 },
+        { name: "AGENDA CLIPS: (assert alerta)", x: 0, y: 0.4 }
+      ];
+
+      coords.forEach(c => {
+        const sp = register3D(new THREE.Mesh(new THREE.SphereGeometry(0.6, 24, 24), new THREE.MeshStandardMaterial({ color: 0x64748b })));
+        sp.position.set(c.x, c.y, 0);
+        clipsNodes.push(sp);
+        createLabel3D(c.name, c.x, c.y + 1.0, 0, "#334155", "#fff", 3.3);
+      });
+
+      createCylinderEdge(clipsNodes[0].position, clipsNodes[2].position, 0.07, 0xcbd5e1);
+      createCylinderEdge(clipsNodes[1].position, clipsNodes[2].position, 0.07, 0xcbd5e1);
+      createCylinderEdge(clipsNodes[2].position, clipsNodes[3].position, 0.09, 0xcbd5e1);
+
+      clipsBanner = createLabel3D("Entorno CLIPS: Red Rete Lista", 0, 5.5, 0, "#2563eb", "#fff", 4.0);
+    }
+
+    function actionT5_9() {
+      const colors = [0x0284c7, 0x0284c7, 0xd97706, 0x16a34a];
+      clipsNodes.forEach((n, i) => {
+        setTimeout(() => {
+          n.material.color.setHex(colors[i]);
+          n.scale.set(1.2, 1.2, 1.2);
+        }, i * 250);
+      });
+      updateLabel3D(clipsBanner, "CLIPS> (run) ➔ Regla Disparada y (assert) Ejecutado", "#16a34a");
+    }
+
+    // --- 10. IA EN LA CREATIVIDAD (DIFUSIÓN GENERATIVA) ---
+    let diffParticles = [], diffLabel;
+    function setupT5_10() {
+      diffParticles = [];
+      for (let i = 0; i < 18; i++) {
+        const sp = register3D(new THREE.Mesh(new THREE.SphereGeometry(0.32, 16, 16), new THREE.MeshStandardMaterial({ color: 0x64748b })));
+        sp.position.set((Math.random()-0.5)*8, 0.5 + Math.random()*3.5, (Math.random()-0.5)*6);
+        diffParticles.push(sp);
+      }
+      diffLabel = createLabel3D("Paso t = T: Ruido Gaussiano Latente", 0, 4.8, 0, "#475569", "#fff", 4.2);
+    }
+
+    function actionT5_10(mode) {
+      diffParticles.forEach((p, i) => {
+        if (mode === 'generar') {
+          const angle = (i / diffParticles.length) * Math.PI * 2;
+          p.position.set(Math.cos(angle) * 3.2, 2.2 + Math.sin(angle * 3) * 0.5, Math.sin(angle) * 3.2);
+          p.material.color.setHSL(i / diffParticles.length, 0.85, 0.5);
+        } else {
+          p.position.set((Math.random()-0.5)*8, 0.5 + Math.random()*3.5, (Math.random()-0.5)*6);
+          p.material.color.setHex(0x64748b);
+        }
+      });
+      updateLabel3D(
+        diffLabel,
+        mode === 'generar' ? "🎨 Paso t = 0: Obra y Armonía Generadas por IA" : "Paso t = T: Ruido Gaussiano Aleatorio",
+        mode === 'generar' ? "#7c3aed" : "#475569"
+      );
+    }
+
+    // --- 11. SERVICIOS DE DATOS Y ANÁLISIS PREDICTIVO ---
+    let predBars = [], predBanner;
+    function setupT6_1() {
+      predBars = [];
+      const heights = [1.2, 1.8, 1.6, 2.4, 3.0, 3.6, 4.2];
+      heights.forEach((h, i) => {
+        const isFuture = i >= 4;
+        const bar = register3D(new THREE.Mesh(
+          new THREE.BoxGeometry(0.85, h, 0.85),
+          new THREE.MeshStandardMaterial({ color: isFuture ? 0x94a3b8 : 0x2563eb, transparent: isFuture, opacity: isFuture ? 0.35 : 1 })
+        ));
+        bar.position.set(-4.5 + i * 1.5, h / 2, 0);
+        predBars.push(bar);
+        createLabel3D(isFuture ? `Pred Q${i+1}` : `Hist Q${i+1}`, -4.5 + i * 1.5, h + 0.6, 0, isFuture ? "#16a34a" : "#1e293b", "#fff", 1.9);
+      });
+      predBanner = createLabel3D("Serie Histórica Q1-Q4 Cargada", 0, 5.4, 0, "#2563eb", "#fff", 4.0);
+    }
+
+    function actionT6_1() {
+      for (let i = 4; i < 7; i++) {
+        predBars[i].material.color.setHex(0x16a34a);
+        predBars[i].material.opacity = 1.0;
+      }
+      updateLabel3D(predBanner, "📈 Proyección Q5-Q7: Demanda +34% (IC 95%)", "#16a34a");
+    }
+
+    // --- 12. AI & MACHINE LEARNING EN EMPRESAS (HIPERAUTOMATIZACIÓN) ---
+    let erpCore, erpTasks = [], erpBanner;
+    function setupT6_2() {
+      erpTasks = [];
+      const inBox = register3D(new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.4, 1.6), new THREE.MeshStandardMaterial({ color: 0x475569 })));
+      inBox.position.set(-4.5, 0.7, 0);
+      createLabel3D("Entrada Documentos", -4.5, 2.1, 0, "#334155", "#fff", 2.9);
+
+      erpCore = register3D(new THREE.Mesh(new THREE.CylinderGeometry(1.3, 1.3, 1.6, 24), new THREE.MeshStandardMaterial({ color: 0x2563eb })));
+      erpCore.position.set(0, 0.8, 0);
+      createLabel3D("Núcleo ML + RPA", 0, 2.3, 0, "#2563eb", "#fff", 2.9);
+
+      const outBox = register3D(new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.4, 1.6), new THREE.MeshStandardMaterial({ color: 0x16a34a })));
+      outBox.position.set(4.5, 0.7, 0);
+      createLabel3D("ERP Automatizado", 4.5, 2.1, 0, "#16a34a", "#fff", 2.9);
+
+      for (let i = 0; i < 4; i++) {
+        const sp = register3D(new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 16), new THREE.MeshStandardMaterial({ color: 0xd97706 })));
+        sp.position.set(-3.0 + i * 0.6, 0.5, 1.2);
+        erpTasks.push(sp);
+      }
+      erpBanner = createLabel3D("Procesos Empresariales en Cola", 0, 4.0, 0, "#475569", "#fff", 4.0);
+    }
+
+    function actionT6_2() {
+      erpCore.material.color.setHex(0x16a34a);
+      erpTasks.forEach((t, i) => {
+        t.position.set(2.0 + i * 0.6, 0.5, 1.2);
+        t.material.color.setHex(0x16a34a);
+      });
+      updateLabel3D(erpBanner, "✅ Hiperautomatización RPA+ML: Tiempo -78%", "#16a34a");
+    }
+
+    // --- 13. MARKETING, VENTAS Y FINANZAS (CLUSTERING K-MEANS) ---
+    let finPoints = [], finBanner;
+    function setupT6_3() {
+      finPoints = [];
+      const coords = [
+        [-3.8, 1.0, -1], [-3.2, 1.5, 0], [-4.0, 0.8, 1], [-3.0, 1.2, -0.5],
+        [0, 2.5, -1], [0.6, 2.8, 0], [-0.5, 2.2, 0.8], [0.4, 2.0, 0.5],
+        [3.6, 0.8, -0.5], [4.2, 1.2, 0.5], [3.5, 1.4, 0], [4.0, 0.6, -1]
+      ];
+
+      coords.forEach(([x, y, z]) => {
+        const sp = register3D(new THREE.Mesh(new THREE.SphereGeometry(0.38, 18, 18), new THREE.MeshStandardMaterial({ color: 0x64748b })));
+        sp.position.set(x, y, z);
+        finPoints.push(sp);
+      });
+
+     createLabel3D("Clúster 2: Recurrentes", 0, 3.8, 0, "#2563eb", "#fff", 2.8);
+      createLabel3D("Clúster 3: Riesgo Fraude", 3.8, 2.5, 0, "#dc2626", "#fff", 2.8);
+      finBanner = createLabel3D("Datos Financieros sin Segmentar", 0, 5.2, 0, "#475569", "#fff", 4.0);
+    }
+
+    function actionT6_3() {
+      finPoints.forEach((p, i) => {
+        if (i < 4) p.material.color.setHex(0x16a34a);
+        else if (i < 8) p.material.color.setHex(0x2563eb);
+        else p.material.color.setHex(0xdc2626);
+      });
+      updateLabel3D(finBanner, "✅ K-Means & Scoring: Conversión +42% | Riesgo Detectado", "#16a34a");
+    }
+
+    // --- 14. MEDICINA, BIÓNICA Y BIOTECNOLOGÍA ---
+    let bioFingers = [], bioBanner;
+    function setupT6_4() {
+      bioFingers = [];
+      // Núcleo sensor neural EMG/EEG
+      const sensor = register3D(new THREE.Mesh(new THREE.SphereGeometry(0.75, 24, 24), new THREE.MeshStandardMaterial({ color: 0x0284c7 })));
+      sensor.position.set(-3.8, 1.5, 0);
+      createLabel3D("Decodificador Neural EMG", -3.8, 2.9, 0, "#0284c7", "#fff", 3.2);
+
+      // Palma biónica
+      const palm = register3D(new THREE.Mesh(new THREE.BoxGeometry(1.8, 1.4, 2.2), new THREE.MeshStandardMaterial({ color: 0x334155 })));
+      palm.position.set(1.2, 1.0, 0);
+      createCylinderEdge(sensor.position, palm.position, 0.09, 0x38bdf8);
+
+      // 3 Dedos biónicos articulados
+      [-0.7, 0, 0.7].forEach(zOff => {
+        const fingerGroup = register3D(new THREE.Group());
+        fingerGroup.position.set(2.1, 1.5, zOff);
+        const phalanx = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.35, 0.38), new THREE.MeshStandardMaterial({ color: 0x2563eb }));
+        phalanx.position.set(0.9, 0, 0);
+        fingerGroup.add(phalanx);
+        bioFingers.push({ group: fingerGroup, mesh: phalanx });
+      });
+
+      bioBanner = createLabel3D("Prótesis Biónica en Estado Extendido", 0, 4.3, 0, "#2563eb", "#fff", 4.2);
+    }
+
+    function actionT6_4(mode) {
+      bioFingers.forEach(f => {
+        if (mode === 'activar_bionica') {
+          f.group.rotation.z = -0.85;
+          f.mesh.material.color.setHex(0x16a34a);
+        } else {
+          f.group.rotation.z = 0;
+          f.mesh.material.color.setHex(0x2563eb);
+        }
+      });
+      updateLabel3D(
+        bioBanner,
+        mode === 'activar_bionica' ? "🦿 Señal EMG Decodificada (8ms): Agarre Biónico Activo" : "✋ Señal Neural Relajada: Mano Biónica Abierta",
+        mode === 'activar_bionica' ? "#16a34a" : "#2563eb"
+      );
+    }
+
+    // --- 15. TRANSPORTE AUTÓNOMO, LOGÍSTICA Y MANEJO DE RIESGOS ---
+    let logDrone, logSafeTube, logBanner;
+    function setupT6_5() {
+      const hub = register3D(new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.4, 1.6), new THREE.MeshStandardMaterial({ color: 0x2563eb })));
+      hub.position.set(-4.8, 0.7, 0);
+      createLabel3D("Centro Logístico", -4.8, 2.0, 0, "#2563eb", "#fff", 2.7);
+
+      const dest = register3D(new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.4, 1.6), new THREE.MeshStandardMaterial({ color: 0x16a34a })));
+      dest.position.set(4.8, 0.7, 0);
+      createLabel3D("Cliente Destino", 4.8, 2.0, 0, "#16a34a", "#fff", 2.7);
+
+      // Zona de riesgo climático en el centro
+      const storm = register3D(new THREE.Mesh(new THREE.SphereGeometry(1.1, 20, 20), new THREE.MeshStandardMaterial({ color: 0xdc2626, transparent: true, opacity: 0.7 })));
+      storm.position.set(0, 1.2, 0);
+      createLabel3D("⚠️ Zona de Riesgo / Tormenta", 0, 2.8, 0, "#dc2626", "#fff", 3.3);
+
+      // Ruta segura curva
+      const curve = new THREE.CatmullRomCurve3([
+        new THREE.Vector3(-4.8, 1.5, 0),
+        new THREE.Vector3(0, 2.2, 3.2),
+        new THREE.Vector3(4.8, 1.5, 0)
+      ]);
+      logSafeTube = register3D(new THREE.Mesh(new THREE.TubeGeometry(curve, 32, 0.09, 10, false), new THREE.MeshStandardMaterial({ color: 0x16a34a })));
+
+      logDrone = register3D(new THREE.Mesh(new THREE.ConeGeometry(0.55, 1.2, 4), new THREE.MeshStandardMaterial({ color: 0x0284c7 })));
+      logDrone.rotation.z = -Math.PI / 2;
+      logDrone.position.set(-4.8, 1.5, 0);
+
+      logBanner = createLabel3D("Flota Autónoma Lista para Despacho", 0, 4.5, 0, "#1e293b", "#fff", 4.2);
+    }
+
+    function actionT6_5() {
+      const path = [[-4.8, 0], [-2.4, 2.2], [0, 3.2], [2.4, 2.2], [4.8, 0]];
+      path.forEach(([x, z], idx) => {
+        setTimeout(() => {
+          if (!logDrone) return;
+          logDrone.position.set(x, 1.8, z);
+          if (idx === path.length - 1) {
+            logDrone.material.color.setHex(0x16a34a);
+            updateLabel3D(logBanner, "✅ Riesgo Evitado: Entrega Autónoma Completada", "#16a34a");
+          }
+        }, idx * 240);
+      });
+    }
+
+    // --- 16. PLN EN ASISTENTES VIRTUALES Y ATENCIÓN AL CLIENTE ---
+    let vaCylinders = [], vaBanner;
+    function setupT6_6() {
+      vaCylinders = [];
+      const stages = [
+        { name: "1. Voz Usuario (ASR)", x: -4.5 },
+        { name: "2. Intención & Sentimiento", x: -1.5 },
+        { name: "3. Base Documental RAG", x: 1.5 },
+        { name: "4. Solución Empática", x: 4.5 }
+      ];
+
+      stages.forEach(s => {
+        const c = register3D(new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.75, 1.6, 24), new THREE.MeshStandardMaterial({ color: 0x64748b })));
+        c.position.set(s.x, 0.8, 0);
+        vaCylinders.push(c);
+        createLabel3D(s.name, s.x, 2.2, 0, "#334155", "#fff", 2.9);
+      });
+
+      for (let i = 0; i < 3; i++) {
+        createCylinderEdge(vaCylinders[i].position, vaCylinders[i+1].position, 0.08, 0xcbd5e1);
+      }
+
+      vaBanner = createLabel3D("Asistente Virtual Empresarial Activo", 0, 4.2, 0, "#2563eb", "#fff", 4.2);
+    }
+
+    function actionT6_6() {
+      const cols = [0x0284c7, 0xd97706, 0x2563eb, 0x16a34a];
+      vaCylinders.forEach((c, i) => {
+        setTimeout(() => {
+          c.material.color.setHex(cols[i]);
+          c.scale.set(1.15, 1.15, 1.15);
+        }, i * 220);
+      });
+      updateLabel3D(vaBanner, "✅ Ticket Resuelto con RAG en 1.8s (CSAT 98%)", "#16a34a");
+    }
+
+    // --- 17. IA EN VIDEOJUEGOS, MÚSICA, AVIACIÓN Y TELECOMUNICACIONES ---
+    let aeroPlane, aeroBeam, aeroBanner;
+    function setupT6_7() {
+      // Torre 5G/6G
+      const tower = register3D(new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.7, 3.6, 16), new THREE.MeshStandardMaterial({ color: 0x334155 })));
+      tower.position.set(-4.2, 1.8, 0);
+      createLabel3D("Antena 5G/6G Beamforming", -4.2, 4.2, 0, "#0284c7", "#fff", 3.2);
+
+      // Aeronave con Piloto IA
+      aeroPlane = register3D(new THREE.Mesh(new THREE.ConeGeometry(0.65, 2.2, 6), new THREE.MeshStandardMaterial({ color: 0x2563eb })));
+      aeroPlane.rotation.z = -Math.PI / 2;
+      aeroPlane.position.set(2.8, 2.2, 0);
+      createLabel3D("Avión Autónomo / NPC IA", 2.8, 3.5, 0, "#2563eb", "#fff", 3.1);
+
+      // Haz direccional
+      const lineGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(-4.2, 3.5, 0), new THREE.Vector3(2.8, 2.2, 0)]);
+      aeroBeam = register3D(new THREE.Line(lineGeo, new THREE.LineBasicMaterial({ color: 0x38bdf8, linewidth: 3 })));
+
+      aeroBanner = createLabel3D("Control Aeroespacial y Red 5G Sincronizados", 0, 5.2, 0, "#1e293b", "#fff", 4.4);
+    }
+
+    function actionT6_7() {
+      aeroPlane.position.set(3.4, 3.6, -1.2);
+      aeroPlane.material.color.setHex(0x16a34a);
+      aeroBeam.geometry.setFromPoints([new THREE.Vector3(-4.2, 3.5, 0), new THREE.Vector3(3.4, 3.6, -1.2)]);
+      aeroBeam.material.color.setHex(0x16a34a);
+      updateLabel3D(aeroBanner, "✈️📡 Beamforming 5G + Piloto IA: Latencia 1.2 ms", "#16a34a");
+    }
+
+    // --- 18. IMPACTO EN EL EMPLEO Y TRANSFORMACIÓN LABORAL ---
+    let jobRoutineBars = [], jobNewBars = [], jobBanner;
+    function setupT6_8() {
+      jobRoutineBars = []; jobNewBars = [];
+      // Barras rojas (Tareas rutinarias)
+      [-3.5, -2.0].forEach(x => {
+        const b = register3D(new THREE.Mesh(new THREE.BoxGeometry(1.1, 3.0, 1.1), new THREE.MeshStandardMaterial({ color: 0xdc2626 })));
+        b.position.set(x, 1.5, 0);
+        jobRoutineBars.push(b);
+      });
+      createLabel3D("Tareas Repetitivas", -2.75, 3.8, 0, "#dc2626", "#fff", 2.9);
+
+      // Barras verdes (Empleo aumentado con IA)
+      [2.0, 3.5].forEach(x => {
+        const b = register3D(new THREE.Mesh(new THREE.BoxGeometry(1.1, 1.6, 1.1), new THREE.MeshStandardMaterial({ color: 0x16a34a })));
+        b.position.set(x, 0.8, 0);
+        jobNewBars.push(b);
+      });
+      createLabel3D("Empleos Potenciados por IA", 2.75, 2.6, 0, "#16a34a", "#fff", 3.3);
+
+      jobBanner = createLabel3D("Mercado Laboral Antes del Re-skilling", 0, 5.0, 0, "#475569", "#fff", 4.2);
+    }
+
+    function actionT6_8() {
+      jobRoutineBars.forEach(b => {
+        b.scale.y = 0.4;
+        b.position.y = 0.6;
+      });
+      jobNewBars.forEach(b => {
+        b.scale.y = 2.2;
+        b.position.y = 1.76;
+      });
+      updateLabel3D(jobBanner, "🎓 Re-skilling Aplicado: Productividad y Nuevos Roles +65%", "#16a34a");
+    }
+
+    // --- 19. SUELDO UNIVERSAL Y ADAPTACIÓN AL FUTURO DEL TRABAJO ---
+    let ubiCitizens = [], ubiEdges = [], ubiBanner;
+    function setupT6_9() {
+      ubiCitizens = []; ubiEdges = [];
+      const core = register3D(new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 1.6, 28), new THREE.MeshStandardMaterial({ color: 0xeab308 })));
+      core.position.set(0, 0.8, 0);
+      createLabel3D("PIB Automatizado IA", 0, 2.3, 0, "#d97706", "#fff", 3.0);
+
+      for (let i = 0; i < 6; i++) {
+        const angle = (i / 6) * Math.PI * 2;
+        const x = Math.cos(angle) * 4.2;
+        const z = Math.sin(angle) * 4.2;
+        const sp = register3D(new THREE.Mesh(new THREE.SphereGeometry(0.55, 22, 22), new THREE.MeshStandardMaterial({ color: 0x64748b })));
+        sp.position.set(x, 0.6, z);
+        ubiCitizens.push(sp);
+        ubiEdges.push(createCylinderEdge(core.position, sp.position, 0.07, 0xcbd5e1));
+        createLabel3D(`Ciudadano ${i+1}`, x, 1.6, z, "#334155", "#fff", 2.2);
+      }
+
+      ubiBanner = createLabel3D("Ecosistema Económico de Renta Básica (UBI)", 0, 4.5, 0, "#2563eb", "#fff", 4.4);
+    }
+
+    function actionT6_9() {
+      ubiCitizens.forEach(c => c.material.color.setHex(0x16a34a));
+      ubiEdges.forEach(e => e.material.color.setHex(0x16a34a));
+      updateLabel3D(ubiBanner, "💵 Dividendo Digital UBI Distribuido: Bienestar 100%", "#16a34a");
+    }
+
+    // --- 20. ÉTICA, REGULACIÓN Y DESAFÍOS SOCIALES ANTE LA IA ---
+    let ethicsBeamGroup, ethicsLeftPan, ethicsRightPan, ethicsBanner;
+    function setupT6_10() {
+      // Pilar central de la balanza
+      const pillar = register3D(new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.45, 3.6, 20), new THREE.MeshStandardMaterial({ color: 0x334155 })));
+      pillar.position.set(0, 1.8, 0);
+
+      ethicsBeamGroup = register3D(new THREE.Group());
+      ethicsBeamGroup.position.set(0, 3.5, 0);
+
+      const bar = new THREE.Mesh(new THREE.BoxGeometry(7.2, 0.25, 0.35), new THREE.MeshStandardMaterial({ color: 0x2563eb }));
+      ethicsBeamGroup.add(bar);
+
+      ethicsLeftPan = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.0, 0.4, 24), new THREE.MeshStandardMaterial({ color: 0x0284c7 }));
+      ethicsLeftPan.position.set(-3.4, -1.2, 0);
+      ethicsBeamGroup.add(ethicsLeftPan);
+
+      ethicsRightPan = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.0, 0.4, 24), new THREE.MeshStandardMaterial({ color: 0x16a34a }));
+      ethicsRightPan.position.set(3.4, -1.2, 0);
+      ethicsBeamGroup.add(ethicsRightPan);
+
+      // Inicialmente ligeramente inclinada
+      ethicsBeamGroup.rotation.z = -0.22;
+
+      createLabel3D("Potencia & Innovación IA", -3.4, 1.2, 0, "#0284c7", "#fff", 3.1);
+      createLabel3D("Ética, Privacidad & Equidad", 3.4, 1.2, 0, "#16a34a", "#fff", 3.2);
+      ethicsBanner = createLabel3D("Balanza de Gobernanza y Regulación IA", 0, 5.1, 0, "#1e293b", "#fff", 4.4);
+    }
+
+    function actionT6_10(mode) {
+      if (!ethicsBeamGroup) return;
+      if (mode === 'sesgo') {
+        ethicsBeamGroup.rotation.z = -0.35;
+        ethicsLeftPan.material.color.setHex(0xdc2626);
+        ethicsRightPan.material.color.setHex(0xdc2626);
+        updateLabel3D(ethicsBanner, "⚠️ ¡Desequilibrio por Sesgo Algorítmico no Auditado!", "#dc2626");
+      } else {
+        ethicsBeamGroup.rotation.z = 0;
+        ethicsLeftPan.material.color.setHex(0x0284c7);
+        ethicsRightPan.material.color.setHex(0x16a34a);
+        updateLabel3D(ethicsBanner, "⚖️ Equilibrio Ético Logrado (Paridad ε < 0.01 & AI Act)", "#16a34a");
+      }
+    }
+  </script>
+</body>
+</html>
